@@ -14,11 +14,15 @@ namespace BepInEx.GUI
         public Form1()
         {
             InitializeComponent();
+            for (int i = 0; i < 2; i++)
+            {
+                checkedListBox1.SetItemChecked(i, true);
+            }
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void button1_Click(object sender, EventArgs e)
         {
-
+            
         }
     }
 }

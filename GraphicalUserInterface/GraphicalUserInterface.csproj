@@ -26,7 +26,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\builds\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -75,6 +75,12 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BepInEx.GUI\BepInEx.GUI.csproj">
+      <Project>{449b9f51-bbe5-4d4a-8936-e0a3081d79cb}</Project>
+      <Name>BepInEx.GUI</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
