@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("GraphicalUserInterface")]
+[assembly: AssemblyTitle("BepInEx.GUI.SplashGUI")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("GraphicalUserInterface")]
+[assembly: AssemblyProduct("BepInEx.GUI.SplashGUI")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("9f49a44d-5a6f-462b-8f96-e95aefd7cbbc")]
+[assembly: Guid("13e68146-7861-4b27-9242-8f2c23348348")]
 
 // Version information for an assembly consists of the following four values:
 //
