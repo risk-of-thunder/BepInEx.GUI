@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace BepInEx.GUI.SplashGUI
@@ -15,7 +13,7 @@ namespace BepInEx.GUI.SplashGUI
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Splash());
+            Application.Run(new DynamicSplash());
         }
     }
 }
