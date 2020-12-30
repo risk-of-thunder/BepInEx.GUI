@@ -1,6 +1,7 @@
 ﻿using BepInEx.Configuration;
 using BepInEx.Logging;
 using Mono.Cecil;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,6 +15,8 @@ namespace BepInEx.GUI
         public static void Patch(AssemblyDefinition _) { }
 
         internal static System.Diagnostics.Process process;
+
+        internal static bool quickFail = false;
 
         public static void Initialize()
         {
@@ -39,10 +42,25 @@ namespace BepInEx.GUI
 
             public void LogEvent(object sender, LogEventArgs eventArgs)
             {
+                if (quickFail)
+                {
+                    return;
+                }
                 if (eventArgs.Data.ToString().Equals("Chainloader startup complete") && eventArgs.Level.Equals(LogLevel.Message))
                 {
-                    Logger.Listeners.Remove(this);
-                    process.Kill();
+                    var logsrc = Logger.CreateLogSource("BepInEx.GUI");
+                    logsrc.LogMessage("Closing GUI");
+                    quickFail = true;
+                    try
+                    {
+                        process.Kill();
+                    }
+                    catch (Exception e)
+                    {
+                        logsrc.LogError(e.Message);
+                        logsrc.LogError(e.StackTrace);
+                    }
+                    logsrc.Dispose();
                 }
             }
         }
