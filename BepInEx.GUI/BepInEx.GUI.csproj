@@ -39,10 +39,6 @@
       <Aliases>global</Aliases>
       <Private>False</Private>
     </Reference>
-    <Reference Include="BepInEx.Preloader">
-      <HintPath>..\packages\BepInEx.BaseLib.5.4.4\lib\net35\BepInEx.Preloader.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Mono.Cecil, Version=0.10.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
       <HintPath>..\packages\Mono.Cecil.0.10.4\lib\net35\Mono.Cecil.dll</HintPath>
       <Private>False</Private>
