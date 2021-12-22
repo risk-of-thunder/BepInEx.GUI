@@ -1,6 +1,7 @@
 ﻿using BepInEx.Configuration;
 using BepInEx.Logging;
 using Mono.Cecil;
+using MonoMod.Utils;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -47,8 +48,22 @@ namespace BepInEx.GUI.Patcher
         {
             foreach (var filePath in Directory.GetFiles(Paths.PatcherPluginPath, "*", SearchOption.AllDirectories))
             {
-                var fileName = Path.GetFileNameWithoutExtension(filePath);
-                if (fileName == "BepInEx.GUI")
+                var fileName = Path.GetFileName(filePath);
+
+                var platform = PlatformHelper.Current;
+                const Platform windowsX64Platform = Platform.Windows | Platform.Bits64;
+                const Platform linuxX64Platform = Platform.Linux | Platform.Bits64;
+                const Platform macOsX64Platform = Platform.MacOS | Platform.Bits64;
+                var isWindows = (platform & windowsX64Platform) == platform;
+                var isLinux = (platform & linuxX64Platform) == platform;
+                var isMacOs = (platform & macOsX64Platform) == platform;
+
+                const string GuiFileName = "BepInEx.GUI";
+
+                // Not the best but should work...
+                if ((isWindows && fileName == $"{GuiFileName}.exe") ||
+                    (isLinux && fileName == GuiFileName && filePath.ToLowerInvariant().Contains("linux")) ||
+                    (isMacOs && fileName == GuiFileName && filePath.ToLowerInvariant().Contains("osx")))
                 {
                     return filePath;
                 }
@@ -60,7 +75,7 @@ namespace BepInEx.GUI.Patcher
         private static void LaunchGui(string executablePath)
         {
             var processStartInfo = new ProcessStartInfo();
-            processStartInfo.WorkingDirectory = Assembly.GetExecutingAssembly().Location;
+            processStartInfo.WorkingDirectory = Path.GetDirectoryName(executablePath);
 
             processStartInfo.Arguments =
                 $"{typeof(Paths).Assembly.GetName().Version} " +
