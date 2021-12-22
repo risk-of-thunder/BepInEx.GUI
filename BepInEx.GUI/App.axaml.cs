@@ -20,16 +20,38 @@ namespace BepInEx.GUI
             {
                 desktop.Startup += (sender, eventArgs) =>
                 {
-                    var pathsInfo = new PathsInfo(eventArgs.Args);
+                    var args = DefaultArgsIfNoneProvided(eventArgs.Args);
+
+                    var platformInfo = new PlatformInfo(args);
+                    var pathsInfo = new PathsInfo(args);
 
                     desktop.MainWindow = new MainWindow
                     {
-                        DataContext = new MainWindowViewModel(pathsInfo),
+                        DataContext = new MainWindowViewModel(pathsInfo, platformInfo),
                     };
                 };       
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        private static string[] DefaultArgsIfNoneProvided(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                args = new string[]
+                {
+                    (0x25 | 0x2).ToString(), // win64
+                    "Unknown Version",
+                    "Unknown Target",
+
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                };
+            }
+
+            return args;
         }
     }
 }
