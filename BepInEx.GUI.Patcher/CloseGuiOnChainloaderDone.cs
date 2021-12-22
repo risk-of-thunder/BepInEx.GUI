@@ -1,5 +1,7 @@
-﻿using BepInEx.Logging;
+﻿using BepInEx.GUI.Config;
+using BepInEx.Logging;
 using System;
+using System.IO;
 
 namespace BepInEx.GUI.Patcher
 {
@@ -23,7 +25,9 @@ namespace BepInEx.GUI.Patcher
             {
                 Patcher.LogSource.LogMessage("Closing BepInEx.GUI");
 
-                Exit();
+                MainConfig.Init(Path.Combine(Paths.ConfigPath, MainConfig.FileName));
+                if (MainConfig.CloseWindowWhenGameLoadedConfig.Value)
+                    Exit();
             }
         }
 
@@ -31,7 +35,7 @@ namespace BepInEx.GUI.Patcher
         {
             try
             {
-                //Patcher.GuiProcess.Kill();
+                Patcher.GuiProcess.Kill();
             }
             catch (Exception e)
             {

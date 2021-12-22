@@ -1,13 +1,20 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30709.132
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BepInEx.GUI", "BepInEx.GUI\BepInEx.GUI.csproj", "{449B9F51-BBE5-4D4A-8936-E0A3081D79CB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BepInEx.GUI", "BepInEx.GUI\BepInEx.GUI.csproj", "{449B9F51-BBE5-4D4A-8936-E0A3081D79CB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BepInEx.GUI.Patcher", "BepInEx.GUI.Patcher\BepInEx.GUI.Patcher.csproj", "{13E68146-7861-4B27-9242-8F2C23348348}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BepInEx.GUI.Patcher", "BepInEx.GUI.Patcher\BepInEx.GUI.Patcher.csproj", "{13E68146-7861-4B27-9242-8F2C23348348}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "BepInEx.GUI.Config", "BepInEx.GUI.Config\BepInEx.GUI.Config.shproj", "{CE23B15B-5A75-4334-AE72-3F9BE842904B}"
 EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		BepInEx.GUI.Config\BepInEx.GUI.Config.projitems*{13e68146-7861-4b27-9242-8f2c23348348}*SharedItemsImports = 5
+		BepInEx.GUI.Config\BepInEx.GUI.Config.projitems*{449b9f51-bbe5-4d4a-8936-e0a3081d79cb}*SharedItemsImports = 5
+		BepInEx.GUI.Config\BepInEx.GUI.Config.projitems*{ce23b15b-5a75-4334-ae72-3f9be842904b}*SharedItemsImports = 13
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU

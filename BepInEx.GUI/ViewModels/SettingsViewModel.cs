@@ -1,71 +1,102 @@
-using BepInEx.Configuration;
+using BepInEx.GUI.Config;
 using BepInEx.GUI.Models;
 using ReactiveUI;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace BepInEx.GUI.ViewModels
 {
     public class SettingsViewModel : ViewModelBase
     {
-        public ConfigFile ConfigFile { get; }
+        public TargetInfo TargetInfo { get; }
 
-        public const string EnableDeveloperToolsText = "Enable Developer Tools";
-        private ConfigEntry<bool> _enableDeveloperToolsConfig;
         private bool _enableDeveloperTools;
         public bool EnableDeveloperTools
         {
             get { return _enableDeveloperTools; }
             set
             {
-                _enableDeveloperToolsConfig.Value = this.RaiseAndSetIfChanged(ref _enableDeveloperTools, value);
-                ConfigFile.Save();
+                MainConfig.EnableDeveloperToolsConfig.Value = this.RaiseAndSetIfChanged(ref _enableDeveloperTools, value);
+                MainConfig.File.Save();
             }
         }
 
-        public const string CloseWindowWhenGameLoadedConfigKey = "Close Window When Game Loaded";
-        public const string CloseWindowWhenGameLoadedConfigDescription = "Close the graphic user interface window when the game is loaded";
-        public ConfigEntry<bool> _closeWindowWhenGameLoadedConfig { get; private set;}
+        
         private bool _closeWindowWhenGameLoaded;
         public bool CloseWindowWhenGameLoaded
         {
             get { return _closeWindowWhenGameLoaded; }
             set
             {
-                _closeWindowWhenGameLoadedConfig.Value = this.RaiseAndSetIfChanged(ref _closeWindowWhenGameLoaded, value);
-                ConfigFile.Save();
+                MainConfig.CloseWindowWhenGameLoadedConfig.Value = this.RaiseAndSetIfChanged(ref _closeWindowWhenGameLoaded, value);
+                MainConfig.File.Save();
             }
         }
 
-        public const string CloseWindowWhenGameClosesConfigKey = "Close Window When Game Closes";
-        public const string CloseWindowWhenGameClosesConfigDescription = "Close the graphic user interface window when the game closes";
-        public ConfigEntry<bool> _closeWindowWhenGameClosesConfig { get; private set;}
         private bool _closeWindowWhenGameCloses;
         public bool CloseWindowWhenGameCloses
         {
             get { return _closeWindowWhenGameCloses; }
             set
             {
-                _closeWindowWhenGameClosesConfig.Value = this.RaiseAndSetIfChanged(ref _closeWindowWhenGameCloses, value);
-                ConfigFile.Save();
+                MainConfig.CloseWindowWhenGameClosesConfig.Value = this.RaiseAndSetIfChanged(ref _closeWindowWhenGameCloses, value);
+                MainConfig.File.Save();
             }
         }
 
+        public CancellationTokenSource CancellationTokenSource { get; private set; }
+
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         // dumb af compiler
-        public SettingsViewModel(PathsInfo pathsInfo)
+        public SettingsViewModel(PathsInfo pathsInfo, TargetInfo targetInfo)
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
-            ConfigFile = new ConfigFile(pathsInfo.ConfigFilePath, true);
+            MainConfig.Init(pathsInfo.ConfigFilePath);
+
+            TargetInfo = targetInfo;
 
             SetConfigBindings();
+
+            InitBackgroundTask();
         }
 
         private void SetConfigBindings()
         {
-            _enableDeveloperToolsConfig = ConfigFile.Bind("Settings", EnableDeveloperToolsText, false, EnableDeveloperToolsText);
+            EnableDeveloperTools = MainConfig.EnableDeveloperToolsConfig.Value;
 
-            _closeWindowWhenGameLoadedConfig = ConfigFile.Bind("Settings", CloseWindowWhenGameLoadedConfigKey, false, CloseWindowWhenGameLoadedConfigDescription);
+            CloseWindowWhenGameLoaded = MainConfig.CloseWindowWhenGameLoadedConfig.Value;
 
-            _closeWindowWhenGameClosesConfig = ConfigFile.Bind("Settings", CloseWindowWhenGameClosesConfigKey, false, CloseWindowWhenGameClosesConfigDescription);
+            CloseWindowWhenGameCloses = MainConfig.CloseWindowWhenGameClosesConfig.Value;
+        }
+
+        private void InitBackgroundTask()
+        {
+            if (TargetInfo.Process == null)
+            {
+                return;
+            }
+
+            CancellationTokenSource = new CancellationTokenSource();
+
+            _ = CheckGameIsClosed(CancellationTokenSource.Token);
+        }
+
+        private async Task CheckGameIsClosed(CancellationToken cancel)
+        {
+            while (true)
+            {
+                if (cancel.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (MainConfig.CloseWindowWhenGameClosesConfig.Value && TargetInfo.Process.HasExited)
+                {
+                    System.Environment.Exit(0);
+                }
+
+                await Task.Delay(500);
+            }
         }
     }
 }

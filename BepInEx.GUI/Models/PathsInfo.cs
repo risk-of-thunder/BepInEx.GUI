@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using BepInEx.GUI.Config;
+using System.IO;
 
 namespace BepInEx.GUI.Models
 {
@@ -24,7 +25,7 @@ namespace BepInEx.GUI.Models
             ConfigFolderPath = args[4];
             GameFolderPath = args[5];
 
-            ConfigFilePath = Path.Combine(ConfigFolderPath, "BepInEx.GUI.cfg");
+            ConfigFilePath = Path.Combine(ConfigFolderPath, MainConfig.FileName);
         }
     }
 }
