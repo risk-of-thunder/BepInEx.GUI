@@ -1,4 +1,6 @@
-﻿namespace BepInEx.GUI.Models
+﻿using System.IO;
+
+namespace BepInEx.GUI.Models
 {
     public class PathsInfo
     {
@@ -9,6 +11,7 @@
         public string BepInExFolderPath { get; }
 
         public string ConfigFolderPath { get; }
+        public string ConfigFilePath { get; }
 
         public string GameFolderPath { get; }
 
@@ -20,6 +23,8 @@
             BepInExFolderPath = args[3];
             ConfigFolderPath = args[4];
             GameFolderPath = args[5];
+
+            ConfigFilePath = Path.Combine(ConfigFolderPath, "BepInEx.GUI.cfg");
         }
     }
 }
