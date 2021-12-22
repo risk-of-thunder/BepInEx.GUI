@@ -22,14 +22,16 @@ namespace BepInEx.GUI
                 {
                     var args = eventArgs.Args.Length == 0 ? new string[] { "Unknown Version", "Unknown Target" } : eventArgs.Args;
 
-                    var bepInExVersion = args[0];
-                    var processName = args[1];
-
-                    var processTargetInfo = new PathsInfo(bepInExVersion, processName);
+                    var pathsInfo = new PathsInfo
+                    {
+                        BepInExVersion = args[0],
+                        ProcessName = args[1],
+                        ConfigFolderPath = args[2],
+                    };
 
                     desktop.MainWindow = new MainWindow
                     {
-                        DataContext = new MainWindowViewModel(processTargetInfo),
+                        DataContext = new MainWindowViewModel(pathsInfo),
                     };
                 };       
             }
