@@ -5,10 +5,20 @@ namespace BepInEx.GUI.Patcher
 {
     public class CloseGuiOnChainloaderDone : ILogListener
     {
-        public void Dispose() { }
+        private bool Disposed;
+
+        public void Dispose()
+        {
+            Disposed = true;
+        }
 
         public void LogEvent(object sender, LogEventArgs eventArgs)
         {
+            if (Disposed)
+            {
+                return;
+            }
+
             if (eventArgs.Data.ToString() == "Chainloader startup complete" && eventArgs.Level.Equals(LogLevel.Message))
             {
                 Patcher.LogSource.LogMessage("Closing BepInEx.GUI");
@@ -30,7 +40,6 @@ namespace BepInEx.GUI.Patcher
             }
             finally
             {
-                Logger.Listeners.Remove(this);
                 Patcher.LogSource.Dispose();
             }
         }
