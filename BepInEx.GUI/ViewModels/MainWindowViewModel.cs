@@ -10,13 +10,13 @@ namespace BepInEx.GUI.ViewModels
 
         public GeneralViewModel GeneralViewModel { get; }
 
-        public MainWindowViewModel(PathsInfo pathsInfo)
+        public MainWindowViewModel(PathsInfo pathsInfo, PlatformInfo platformInfo)
         {
             PathsInfo = pathsInfo;
 
             WindowInfo = new WindowInfo(PathsInfo);
 
-            GeneralViewModel = new GeneralViewModel(PathsInfo);
+            GeneralViewModel = new GeneralViewModel(PathsInfo, platformInfo);
         }
     }
 }
