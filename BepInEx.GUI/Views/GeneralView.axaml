@@ -42,11 +42,11 @@
 				<ColumnDefinition Width="0.33*" />
 			</Grid.ColumnDefinitions>
 
-			<Button Grid.Column="0" Content="Open Game Folder" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<Button Grid.Column="0" Content="Open Game Folder" Command="{Binding GeneralViewModel.OnClickOpenGameFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-			<Button Grid.Column="1" Content="Show Log Folder" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<Button Grid.Column="1" Content="Show Log Folder" Command="{Binding GeneralViewModel.OnClickShowLogFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 			
-			<Button Grid.Column="2" Content="Show BepInEx Folder" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<Button Grid.Column="2" Content="Show BepInEx Folder" Command="{Binding GeneralViewModel.OnClickShowBepInExFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
 		</Grid>
 
