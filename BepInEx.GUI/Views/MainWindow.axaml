@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BepInEx.GUI.ViewModels"
+		xmlns:views="clr-namespace:BepInEx.GUI.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="BepInEx.GUI.Views.MainWindow"
+		Name="MainGuiWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="{Binding WindowInfo.Title}">
+
+		<TabControl>
+
+			<TabItem Header="General" Name="GeneralTabItem" HorizontalContentAlignment="Center">
+				<views:GeneralView></views:GeneralView>
+			</TabItem>
+
+			<TabItem Header="Console" Name="ConsoleTabItem" HorizontalContentAlignment="Center">
+				<views:ConsoleView></views:ConsoleView>
+			</TabItem>
+
+			<TabItem Header="Settings" Name="SettingsTabItem" HorizontalContentAlignment="Center">
+				<views:SettingsView></views:SettingsView>
+			</TabItem>
+
+		</TabControl>
+
+</Window>
