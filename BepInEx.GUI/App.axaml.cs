@@ -20,14 +20,7 @@ namespace BepInEx.GUI
             {
                 desktop.Startup += (sender, eventArgs) =>
                 {
-                    var args = eventArgs.Args.Length == 0 ? new string[] { "Unknown Version", "Unknown Target" } : eventArgs.Args;
-
-                    var pathsInfo = new PathsInfo
-                    {
-                        BepInExVersion = args[0],
-                        ProcessName = args[1],
-                        ConfigFolderPath = args[2],
-                    };
+                    var pathsInfo = new PathsInfo(eventArgs.Args);
 
                     desktop.MainWindow = new MainWindow
                     {
