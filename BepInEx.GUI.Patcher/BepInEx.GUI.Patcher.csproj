@@ -8,5 +8,7 @@
   <ItemGroup>
     <PackageReference Include="BepInEx.Core" Version="5.4.17" />
   </ItemGroup>
+
+  <Import Project="..\BepInEx.GUI.Config\BepInEx.GUI.Config.projitems" Label="Shared" />
   
 </Project>
