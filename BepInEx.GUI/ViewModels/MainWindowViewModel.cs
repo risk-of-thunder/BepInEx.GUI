@@ -10,6 +10,8 @@ namespace BepInEx.GUI.ViewModels
 
         public GeneralViewModel GeneralViewModel { get; }
 
+        public SettingsViewModel SettingsViewModel { get; }
+
         public MainWindowViewModel(PathsInfo pathsInfo, PlatformInfo platformInfo)
         {
             PathsInfo = pathsInfo;
@@ -17,6 +19,8 @@ namespace BepInEx.GUI.ViewModels
             WindowInfo = new WindowInfo(PathsInfo);
 
             GeneralViewModel = new GeneralViewModel(PathsInfo, platformInfo);
+
+            SettingsViewModel = new SettingsViewModel(PathsInfo);
         }
     }
 }

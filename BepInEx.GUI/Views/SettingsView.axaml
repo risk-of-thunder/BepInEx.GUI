@@ -5,6 +5,44 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="BepInEx.GUI.Views.SettingsView">
 
-	<TextBlock Text="I am in the qsdqsd !" HorizontalAlignment="Left"/>
+	<Grid>
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*" />
+			<RowDefinition Height="*" />
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+
+		<Grid Grid.Row="0">
+
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" />
+			</Grid.ColumnDefinitions>
+
+			<CheckBox Grid.Column="0" Content="Enable Developer Tools" IsChecked="{Binding SettingsViewModel.EnableDeveloperTools, Mode=TwoWay}" />
+
+		</Grid>
+
+		<Grid Grid.Row="1">
+
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" />
+			</Grid.ColumnDefinitions>
+
+			<CheckBox Grid.Column="0" Content="Close this window when game is loaded" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameLoaded, Mode=TwoWay}" />
+
+		</Grid>
+
+		<Grid Grid.Row="2">
+
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" />
+			</Grid.ColumnDefinitions>
+
+			<CheckBox Grid.Column="0" Content="Close this window when the game closes" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameCloses, Mode=TwoWay}" />
+
+		</Grid>
+
+	</Grid>
 
 </UserControl>
