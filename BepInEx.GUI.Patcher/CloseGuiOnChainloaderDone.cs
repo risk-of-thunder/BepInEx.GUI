@@ -31,7 +31,7 @@ namespace BepInEx.GUI.Patcher
         {
             try
             {
-                Patcher.GuiProcess.Kill();
+                //Patcher.GuiProcess.Kill();
             }
             catch (Exception e)
             {
