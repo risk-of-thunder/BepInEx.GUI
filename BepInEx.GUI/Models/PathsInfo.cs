@@ -2,14 +2,10 @@
 {
     public class PathsInfo
     {
-        public object BepInExVersion { get; }
+        public string BepInExVersion { get; internal set; }
 
-        public string ProcessName { get; }
+        public string ProcessName { get; internal set; }
 
-        public PathsInfo(string bepInExVersion, string processName)
-        {
-            BepInExVersion = bepInExVersion;
-            ProcessName = processName;
-        }
+        public string ConfigFolderPath { get; internal set; }
     }
 }
