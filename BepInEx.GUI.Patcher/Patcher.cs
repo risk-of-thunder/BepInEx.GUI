@@ -86,7 +86,8 @@ namespace BepInEx.GUI.Patcher
                 $"\"{Paths.ProcessName}\" " +
                 $"\"{Paths.BepInExRootPath}\" " +
                 $"\"{Paths.ConfigPath}\" " +
-                $"\"{Paths.GameRootPath}\"";
+                $"\"{Paths.GameRootPath}\" " +
+                $"\"{Process.GetCurrentProcess().Id}\"";
 
             GuiProcess = Process.Start(processStartInfo);
             Logger.Listeners.Add(new CloseGuiOnChainloaderDone());
