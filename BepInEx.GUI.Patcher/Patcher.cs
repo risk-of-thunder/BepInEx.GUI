@@ -61,7 +61,11 @@ namespace BepInEx.GUI.Patcher
         {
             var processStartInfo = new ProcessStartInfo();
             processStartInfo.WorkingDirectory = Assembly.GetExecutingAssembly().Location;
-            processStartInfo.Arguments = $"{Paths.ProcessName}";
+
+            processStartInfo.Arguments =
+                $"{typeof(Paths).Assembly.GetName().Version} " +
+                $"{Paths.ProcessName} " +
+                $"{Paths.ConfigPath}";
 
             GuiProcess = Process.Start(executablePath);
             Logger.Listeners.Add(new CloseGuiOnChainloaderDone());
