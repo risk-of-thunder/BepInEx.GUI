@@ -1,10 +1,8 @@
 using BepInEx.GUI.Models;
-using ReactiveUI;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using System.Windows.Input;
 
 namespace BepInEx.GUI.ViewModels
 {
@@ -18,10 +16,6 @@ namespace BepInEx.GUI.ViewModels
         public ObservableCollection<Mod> Mods { get; }
 
         public PlatformInfo PlatformInfo { get; }
-
-        public ICommand OnClickOpenGameFolderCommand { get; private set; }
-        public ICommand OnClickShowLogFolderCommand { get; private set; }
-        public ICommand OnClickShowBepInExFolderCommand { get; private set; }
 
         public GeneralViewModel(PathsInfo pathsInfo, PlatformInfo platformInfo)
         {
@@ -37,15 +31,6 @@ namespace BepInEx.GUI.ViewModels
             Mods = new ObservableCollection<Mod>(mods);
 
             PlatformInfo = platformInfo;
-
-            SetButtonCommands();
-        }
-
-        private void SetButtonCommands()
-        {
-            OnClickOpenGameFolderCommand = ReactiveCommand.Create(OnClickOpenGameFolder);
-            OnClickShowLogFolderCommand = ReactiveCommand.Create(OnClickShowLogFolder);
-            OnClickShowBepInExFolderCommand = ReactiveCommand.Create(OnClickShowBepInExFolder);
         }
 
         public void OnClickOpenGameFolder()
