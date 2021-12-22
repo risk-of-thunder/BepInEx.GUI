@@ -50,15 +50,17 @@ namespace BepInEx.GUI.Patcher
             {
                 var fileName = Path.GetFileName(filePath);
 
-                var platform = PlatformHelper.Current;
+                const string GuiFileName = "BepInEx.GUI";
+
                 const Platform windowsX64Platform = Platform.Windows | Platform.Bits64;
                 const Platform linuxX64Platform = Platform.Linux | Platform.Bits64;
                 const Platform macOsX64Platform = Platform.MacOS | Platform.Bits64;
+
+                var platform = PlatformHelper.Current;
+
                 var isWindows = (platform & windowsX64Platform) == platform;
                 var isLinux = (platform & linuxX64Platform) == platform;
                 var isMacOs = (platform & macOsX64Platform) == platform;
-
-                const string GuiFileName = "BepInEx.GUI";
 
                 // Not the best but should work...
                 if ((isWindows && fileName == $"{GuiFileName}.exe") ||
@@ -75,14 +77,18 @@ namespace BepInEx.GUI.Patcher
         private static void LaunchGui(string executablePath)
         {
             var processStartInfo = new ProcessStartInfo();
+            processStartInfo.FileName = executablePath;
             processStartInfo.WorkingDirectory = Path.GetDirectoryName(executablePath);
 
             processStartInfo.Arguments =
-                $"{typeof(Paths).Assembly.GetName().Version} " +
-                $"{Paths.ProcessName} " +
-                $"{Paths.ConfigPath}";
+                $"\"{PlatformHelper.Current}\" " +
+                $"\"{typeof(Paths).Assembly.GetName().Version}\" " +
+                $"\"{Paths.ProcessName}\" " +
+                $"\"{Paths.BepInExRootPath}\" " +
+                $"\"{Paths.ConfigPath}\" " +
+                $"\"{Paths.GameRootPath}\"";
 
-            GuiProcess = Process.Start(executablePath);
+            GuiProcess = Process.Start(processStartInfo);
             Logger.Listeners.Add(new CloseGuiOnChainloaderDone());
         }
     }
