@@ -24,10 +24,11 @@ namespace BepInEx.GUI
 
                     var platformInfo = new PlatformInfo(args);
                     var pathsInfo = new PathsInfo(args);
+                    var targetInfo = new TargetInfo(args);
 
                     desktop.MainWindow = new MainWindow
                     {
-                        DataContext = new MainWindowViewModel(pathsInfo, platformInfo),
+                        DataContext = new MainWindowViewModel(pathsInfo, platformInfo, targetInfo),
                     };
                 };       
             }
@@ -45,6 +46,7 @@ namespace BepInEx.GUI
                     "Unknown Version",
                     "Unknown Target",
 
+                    string.Empty,
                     string.Empty,
                     string.Empty,
                     string.Empty,
