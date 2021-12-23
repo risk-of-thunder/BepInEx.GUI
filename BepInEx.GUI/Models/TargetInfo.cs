@@ -10,8 +10,8 @@ namespace BepInEx.GUI.Models
 
         public TargetInfo(string[] args)
         {
-            int.TryParse(args[6], out var id);
-            Id = id;
+            if (int.TryParse(args[6], out var id));
+                Id = id;
 
             Process = Process.GetProcessById(Id);
         }
