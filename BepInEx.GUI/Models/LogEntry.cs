@@ -17,7 +17,7 @@ namespace BepInEx.GUI.Models
         public string Level { get; internal set; }
 
         [ProtoMember(3)]
-        public int LevelCode { get; internal set; }
+        public Logging.LogLevel LevelCode { get; internal set; }
 
         [ProtoMember(4)]
         public string Data { get; internal set; }
@@ -40,6 +40,11 @@ namespace BepInEx.GUI.Models
             }
 
             return null;
+        }
+
+        public override string ToString()
+        {
+            return $"[{Level}: {Source}] {Data}";
         }
     }
 
