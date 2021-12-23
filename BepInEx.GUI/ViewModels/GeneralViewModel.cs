@@ -1,8 +1,10 @@
 using BepInEx.GUI.Models;
+using ReactiveUI;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using WebSocketSharp;
 
 namespace BepInEx.GUI.ViewModels
 {
@@ -12,25 +14,53 @@ namespace BepInEx.GUI.ViewModels
 
         public string TargetIsLoadingCanCloseWindow { get; }
 
-        public string LoadedModCountText { get; }
+        private string _loadedModCountText;
+        public string LoadedModCountText
+        {
+            get { return _loadedModCountText; }
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _loadedModCountText, value);
+            }
+        }
+
         public ObservableCollection<Mod> Mods { get; }
 
         public PlatformInfo PlatformInfo { get; }
 
-        public GeneralViewModel(PathsInfo pathsInfo, PlatformInfo platformInfo)
+        public GeneralViewModel(PathsInfo pathsInfo, PlatformInfo platformInfo, WebSocket webSocket)
         {
             PathsInfo = pathsInfo;
 
             TargetIsLoadingCanCloseWindow = $"{pathsInfo.ProcessName} is loading, you can safely close this window.";
 
-            var mods = new List<Mod>();
-
-            mods.Add(new Mod("qsdsqd"));
-
-            LoadedModCountText = $"Loaded Mods: {mods.Count}";
-            Mods = new ObservableCollection<Mod>(mods);
+            Mods = new ObservableCollection<Mod>();
+            webSocket.OnMessage += AddLoadedModToList;
 
             PlatformInfo = platformInfo;
+        }
+
+        private void AddLoadedModToList(object? sender, MessageEventArgs e)
+        {
+            const string LoadingModLog = "Loading [";
+
+            var logEntry = LogEntry.Deserialize(e.RawData);
+            if (logEntry == null)
+            {
+                return;
+            }
+
+            var logEntryText = logEntry.Data;
+            if (logEntryText.Contains(LoadingModLog) && logEntry.Source == "BepInEx")
+            {
+                var modInfoArray = logEntryText.Split('[')[1].Split(' ');
+                var modName = modInfoArray[0];
+                var modVersion = modInfoArray[1].Remove(modInfoArray[1].Length - 1, 1);
+
+                Mods.Add(new Mod(modName, modVersion));
+
+                LoadedModCountText = $"Loaded Mods: {Mods.Count}";
+            }
         }
 
         public void OnClickOpenGameFolder()
