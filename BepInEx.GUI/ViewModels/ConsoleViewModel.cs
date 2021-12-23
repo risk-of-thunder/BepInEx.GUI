@@ -1,5 +1,8 @@
 using BepInEx.GUI.Models;
 using ReactiveUI;
+using System;
+using System.Collections.Generic;
+using System.Text;
 using WebSocketSharp;
 
 namespace BepInEx.GUI.ViewModels
@@ -10,6 +13,8 @@ namespace BepInEx.GUI.ViewModels
 
         public TargetInfo TargetInfo { get; }
 
+        public List<LogEntry> LogEntries { get; }
+
         private string _textFilter = "";
         public string TextFilter
         {
@@ -17,6 +22,7 @@ namespace BepInEx.GUI.ViewModels
             set
             {
                 this.RaiseAndSetIfChanged(ref _textFilter, value);
+                UpdateConsoleBox();
             }
         }
 
@@ -30,13 +36,17 @@ namespace BepInEx.GUI.ViewModels
             }
         }
 
-        private int _logFilterLevel;
+        private Logging.LogLevel[] _logLevels = (Logging.LogLevel[])Enum.GetValues(typeof(Logging.LogLevel));
+        private Logging.LogLevel _allowedLogLevel = Logging.LogLevel.All;
+        private int _logFilterLevel = 7;
         public int LogFilterLevel
         {
             get { return _logFilterLevel; }
             set
             {
                 this.RaiseAndSetIfChanged(ref _logFilterLevel, value);
+                _allowedLogLevel = _logLevels[_logFilterLevel];
+                UpdateConsoleBox();
             }
         }
 
@@ -46,16 +56,44 @@ namespace BepInEx.GUI.ViewModels
             WebSocket.OnMessage += AddLogToConsole;
 
             TargetInfo = targetInfo;
+
+            LogEntries = new();
         }
 
         private void AddLogToConsole(object? sender, MessageEventArgs e)
         {
-            // todo : store the entries in list so that we can apply the filters
             var logEntry = LogEntry.Deserialize(e.RawData);
             if (logEntry != null)
             {
-                ConsoleText += logEntry.Data + "\n";
+                LogEntries.Add(logEntry);
+                UpdateConsoleBox();
             }
+        }
+
+        private void UpdateConsoleBox()
+        {
+            var stringBuilder = new StringBuilder();
+
+            foreach (var logEntry in LogEntries)
+            {
+                if (logEntry.LevelCode <= _allowedLogLevel)
+                {
+                    if (TextFilter.Length > 0)
+                    {
+                        var logEntryString = logEntry.ToString();
+                        if (logEntryString.ToLowerInvariant().Contains(TextFilter.ToLowerInvariant()))
+                        {
+                            stringBuilder.AppendLine(logEntryString);
+                        }
+                    }
+                    else
+                    {
+                        stringBuilder.AppendLine(logEntry.ToString());
+                    }
+                }
+            }
+
+            ConsoleText = stringBuilder.ToString();
         }
 
         private bool _isTargetPaused;
