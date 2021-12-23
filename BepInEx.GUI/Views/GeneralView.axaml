@@ -22,12 +22,22 @@
 				<RowDefinition Height="0.75*" />
 			</Grid.RowDefinitions>
 
-			<TextBlock Grid.Row="0" Text="{Binding GeneralViewModel.LoadedModCountText}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+			<TextBlock Grid.Row="0" Text="{Binding GeneralViewModel.LoadedModCountText, Mode=TwoWay}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
 			<ListBox Grid.Row="1" Name="LoadedModsList" Items="{Binding GeneralViewModel.Mods}">
 				<ListBox.ItemTemplate>
 					<DataTemplate>
-						<TextBlock Text="{Binding Name}"/>
+						<Grid>
+
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="0.5*" />
+								<ColumnDefinition Width="0.5*" />
+							</Grid.ColumnDefinitions>
+							
+							<TextBlock Grid.Column="0" Text="{Binding Name}" />
+							<TextBlock Grid.Column="1" Text="{Binding Version}" Margin="10,0,0,0" />
+							
+						</Grid>
 					</DataTemplate>
 				</ListBox.ItemTemplate>
 			</ListBox>
