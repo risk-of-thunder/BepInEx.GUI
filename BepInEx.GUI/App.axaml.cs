@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 using BepInEx.GUI.Models;
 using BepInEx.GUI.ViewModels;
 using BepInEx.GUI.Views;
+using WebSocketSharp;
 
 namespace BepInEx.GUI
 {
@@ -26,9 +27,18 @@ namespace BepInEx.GUI
                     var pathsInfo = new PathsInfo(args);
                     var targetInfo = new TargetInfo(args);
 
+                    var webSocket = new WebSocket("ws://localhost:5892/Log");
+                    webSocket.Connect();
+
                     desktop.MainWindow = new MainWindow
                     {
-                        DataContext = new MainWindowViewModel(pathsInfo, platformInfo, targetInfo),
+                        DataContext = new MainWindowViewModel(webSocket, pathsInfo, platformInfo, targetInfo),
+                    };
+
+                    // Needed or the target closes
+                    desktop.MainWindow.Closing += (sender, e) =>
+                    {
+                        webSocket.Close();
                     };
                 };       
             }
