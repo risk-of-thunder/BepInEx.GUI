@@ -21,7 +21,7 @@ namespace BepInEx.GUI.ViewModels
 
             WindowInfo = new WindowInfo(PathsInfo);
 
-            GeneralViewModel = new GeneralViewModel(PathsInfo, platformInfo);
+            GeneralViewModel = new GeneralViewModel(PathsInfo, platformInfo, webSocket);
 
             ConsoleViewModel = new ConsoleViewModel(webSocket, targetInfo);
 
