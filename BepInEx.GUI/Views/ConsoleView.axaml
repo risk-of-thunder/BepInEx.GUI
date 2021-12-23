@@ -5,6 +5,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="BepInEx.GUI.Views.ConsoleView">
 
+
 	<Grid>
 
 		<Grid.RowDefinitions>
@@ -37,7 +38,7 @@
 			</Grid.ColumnDefinitions>
 
 			<Label Grid.Column="0" Content="Log Filter" Target="{Binding ElementName=SliderLogFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-			<Slider Grid.Column="1" Name="SliderLogFilter" TickFrequency="1" IsSnapToTickEnabled="True" Maximum="8" Value="{Binding ConsoleViewModel.LogFilterLevel, Mode=TwoWay}"/>
+			<Slider Grid.Column="1" Name="SliderLogFilter" TickFrequency="1" IsSnapToTickEnabled="True" Maximum="7" Value="{Binding ConsoleViewModel.LogFilterLevel, Mode=TwoWay}"/>
 
 		</Grid>
 
