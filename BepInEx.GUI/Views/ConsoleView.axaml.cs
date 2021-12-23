@@ -1,6 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
+using System;
 
 namespace BepInEx.GUI.Views
 {
@@ -9,11 +9,15 @@ namespace BepInEx.GUI.Views
         public ConsoleView()
         {
             InitializeComponent();
+
+            // https://github.com/AvaloniaUI/Avalonia/issues/418
+            TextBoxConsole.GetObservable(TextBox.TextProperty).Subscribe(ScrollToEnd);
         }
 
-        private void InitializeComponent()
+        private void ScrollToEnd(string newText)
         {
-            AvaloniaXamlLoader.Load(this);
+            // https://stackoverflow.com/a/58233265
+            TextBoxConsole.CaretIndex = int.MaxValue;
         }
     }
 }
