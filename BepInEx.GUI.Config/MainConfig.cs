@@ -2,6 +2,8 @@
 
 namespace BepInEx.GUI.Config
 {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
     public static class MainConfig
     {
         public const string FileName = "BepInEx.GUI.cfg";
@@ -9,7 +11,7 @@ namespace BepInEx.GUI.Config
         public static ConfigFile File { get; private set; }
 
         public const string EnableDeveloperToolsText = "Enable Developer Tools";
-        public static ConfigEntry<bool> EnableDeveloperToolsConfig;
+        public static ConfigEntry<bool> EnableDeveloperToolsConfig { get; private set; }
 
         public const string CloseWindowWhenGameLoadedConfigKey = "Close Window When Game Loaded";
         public const string CloseWindowWhenGameLoadedConfigDescription = "Close the graphic user interface window when the game is loaded";
@@ -30,4 +32,7 @@ namespace BepInEx.GUI.Config
             CloseWindowWhenGameClosesConfig = File.Bind("Settings", CloseWindowWhenGameClosesConfigKey, true, CloseWindowWhenGameClosesConfigDescription);
         }
     }
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
 }
