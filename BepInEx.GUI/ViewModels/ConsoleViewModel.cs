@@ -1,4 +1,5 @@
 using BepInEx.GUI.Models;
+using BepInEx.GUI.Views;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
@@ -39,6 +40,17 @@ namespace BepInEx.GUI.ViewModels
             }
         }
 
+        private bool _consoleAutoScroll = true;
+        public bool ConsoleAutoScroll
+        {
+            get { return _consoleAutoScroll; }
+            set
+            {
+                ConsoleView.ConsoleAutoScroll = value;
+                this.RaiseAndSetIfChanged(ref _consoleAutoScroll, value);
+            }
+        }
+
         private string _textFilter = "";
         public string TextFilter
         {
@@ -70,7 +82,18 @@ namespace BepInEx.GUI.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _logFilterLevel, value);
                 _allowedLogLevel = _logLevels[_logFilterLevel];
+                LogFilterLevelText = "Log Filter Level : " + _allowedLogLevel.ToString();
                 UpdateConsoleBox();
+            }
+        }
+
+        public string _logFilterLevelText = "Log Filter Level : All";
+        public string LogFilterLevelText
+        {
+            get { return _logFilterLevelText; }
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _logFilterLevelText, value);
             }
         }
 
@@ -125,9 +148,6 @@ namespace BepInEx.GUI.ViewModels
                     }
                 }
             }
-
-            // Avalonia lol
-            consoleText.Add(new ColoredEntry("", "Transparent"));
 
             ConsoleText = consoleText;
         }
