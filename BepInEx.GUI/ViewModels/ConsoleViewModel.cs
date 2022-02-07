@@ -29,6 +29,16 @@ namespace BepInEx.GUI.ViewModels
 
         public List<LogEntry> LogEntries { get; }
 
+        private string _pauseButtonText = "Pause Game";
+        public string PauseButtonText
+        {
+            get { return _pauseButtonText; }
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _pauseButtonText, value);
+            }
+        }
+
         private string _textFilter = "";
         public string TextFilter
         {
@@ -116,6 +126,9 @@ namespace BepInEx.GUI.ViewModels
                 }
             }
 
+            // Avalonia lol
+            consoleText.Add(new ColoredEntry("", "Transparent"));
+
             ConsoleText = consoleText;
         }
 
@@ -133,10 +146,12 @@ namespace BepInEx.GUI.ViewModels
                 if (_isTargetPaused)
                 {
                     TargetInfo.Process.Resume();
+                    PauseButtonText = "Pause Game";
                 }
                 else
                 {
                     TargetInfo.Process.Suspend();
+                    PauseButtonText = "Resume Game";
                 }
 
                 _isTargetPaused = !_isTargetPaused;
