@@ -24,25 +24,27 @@
 
 			<Label Grid.Column="0" Content="Text Filter" Target="{Binding ElementName=TextBoxTextFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
 			<TextBox Grid.Column="1" Name="TextBoxTextFilter" Text="{Binding ConsoleViewModel.TextFilter, Mode=TwoWay}"/>
-			<Button Grid.Column="2" Content="{Binding ConsoleViewModel.PauseButtonText, Mode=TwoWay}" Command="{Binding ConsoleViewModel.OnClickPauseGame}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+			<StackPanel Grid.Column="2" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+				<Button Content="{Binding ConsoleViewModel.PauseButtonText, Mode=TwoWay}" Command="{Binding ConsoleViewModel.OnClickPauseGame}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+				<CheckBox Content="Console Auto-Scroll" IsChecked="{Binding ConsoleViewModel.ConsoleAutoScroll, Mode=TwoWay}" />
+			</StackPanel>
 
 		</Grid>
 
-		<ListBox Grid.Row="1" Items="{Binding ConsoleViewModel.ConsoleText, Mode=TwoWay}" Name="TextListConsole" Background="Black">
-			<ListBox.ItemTemplate>
-				<DataTemplate>
-					
-					<ScrollViewer>
-						<StackPanel>
+		<ScrollViewer Grid.Row="1" Name="ConsoleScrollViewer" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+			<ItemsRepeater Items="{Binding ConsoleViewModel.ConsoleText}" Name="ConsoleItemsRepeater">
+				<ItemsRepeater.ItemTemplate>
+					<DataTemplate>
+						<StackPanel Orientation="Vertical">
 							<Border Background="{Binding Color}" CornerRadius="4" Padding="4">
-								<TextBox IsReadOnly="True" Text="{Binding Text}" MaxHeight="500" />
+								<TextBox IsReadOnly="True" Text="{Binding Text}" TextWrapping="Wrap"/>
 							</Border>
 						</StackPanel>
-					</ScrollViewer>
-
-				</DataTemplate>
-			</ListBox.ItemTemplate>
-		</ListBox>
+					</DataTemplate>
+				</ItemsRepeater.ItemTemplate>
+			</ItemsRepeater>
+		</ScrollViewer>
 
 		<Grid Grid.Row="2">
 
@@ -51,7 +53,7 @@
 				<ColumnDefinition Width="0.75*" />
 			</Grid.ColumnDefinitions>
 
-			<Label Grid.Column="0" Content="Log Filter" Target="{Binding ElementName=SliderLogFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+			<Label Grid.Column="0" Content="{Binding ConsoleViewModel.LogFilterLevelText, Mode=TwoWay}" Target="{Binding ElementName=SliderLogFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
 			<Slider Grid.Column="1" Name="SliderLogFilter" TickFrequency="1" IsSnapToTickEnabled="True" Maximum="7" Value="{Binding ConsoleViewModel.LogFilterLevel, Mode=TwoWay}"/>
 
 		</Grid>
