@@ -80,15 +80,17 @@ namespace BepInEx.GUI.ViewModels
 
         private void OpenFolder(string folderPath)
         {
+            if (!folderPath.EndsWith(Path.DirectorySeparatorChar))
+            {
+                folderPath += Path.DirectorySeparatorChar;
+            }
+
             if (Directory.Exists(folderPath))
             {
                 var processStartInfo = new ProcessStartInfo();
-                processStartInfo.Arguments = folderPath;
-
-                if (PlatformInfo.IsWindows)
-                {
-                    processStartInfo.FileName = "explorer.exe";
-                }
+                processStartInfo.FileName = folderPath;
+                processStartInfo.UseShellExecute = true;
+                processStartInfo.Verb = "open";
 
                 Process.Start(processStartInfo);
             }
