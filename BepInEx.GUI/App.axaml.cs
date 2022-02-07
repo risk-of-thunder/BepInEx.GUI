@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 using BepInEx.GUI.Models;
 using BepInEx.GUI.ViewModels;
 using BepInEx.GUI.Views;
+using System;
 using WebSocketSharp;
 
 namespace BepInEx.GUI
@@ -21,6 +22,8 @@ namespace BepInEx.GUI
             {
                 desktop.Startup += (sender, eventArgs) =>
                 {
+                    AppDomain.CurrentDomain.UnhandledException += ShowUnhandledException;
+
                     var args = DefaultArgsIfNoneProvided(eventArgs.Args);
 
                     var platformInfo = new PlatformInfo(args);
@@ -44,6 +47,12 @@ namespace BepInEx.GUI
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        private void ShowUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var ex = (Exception)e.ExceptionObject;
+            Debug.Message(ex.ToString());
         }
 
         private static string[] DefaultArgsIfNoneProvided(string[] args)
