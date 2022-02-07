@@ -2,28 +2,25 @@ using Avalonia;
 using Avalonia.Controls;
 using System;
 using System.Collections;
-using System.Collections.ObjectModel;
-using static BepInEx.GUI.ViewModels.ConsoleViewModel;
 
 namespace BepInEx.GUI.Views
 {
     public partial class ConsoleView : UserControl
     {
+        public static bool ConsoleAutoScroll = true;
+
         public ConsoleView()
         {
             InitializeComponent();
 
-            TextListConsole.GetObservable(ItemsControl.ItemsProperty).Subscribe(ScrollToEnd);
+            ConsoleItemsRepeater.GetObservable(ItemsControl.ItemsProperty).Subscribe(ScrollToEnd);
         }
 
         private void ScrollToEnd(IEnumerable obj)
         {
-            if (TextListConsole.Items != null)
+            if (ConsoleAutoScroll)
             {
-                if (TextListConsole.Items is ObservableCollection<ColoredEntry> items)
-                {
-                    TextListConsole.SelectedIndex = items.Count - 1;
-                }
+                ConsoleScrollViewer.ScrollToEnd();
             }
         }
     }
