@@ -52,15 +52,15 @@ namespace BepInEx.GUI.Patcher
 
                 const string GuiFileName = "BepInEx.GUI";
 
-                const Platform windowsX64Platform = Platform.Windows | Platform.Bits64;
-                const Platform linuxX64Platform = Platform.Linux | Platform.Bits64;
-                const Platform macOsX64Platform = Platform.MacOS | Platform.Bits64;
+                const Platform windowsPlatform = Platform.Windows;
+                const Platform linuxPlatform = Platform.Linux;
+                const Platform macOSPlatform = Platform.MacOS;
 
                 var platform = PlatformHelper.Current;
 
-                var isWindows = (platform & windowsX64Platform) == platform;
-                var isLinux = (platform & linuxX64Platform) == platform;
-                var isMacOs = (platform & macOsX64Platform) == platform;
+                var isWindows = (platform & windowsPlatform) == platform;
+                var isLinux = (platform & linuxPlatform) == platform;
+                var isMacOs = (platform & macOSPlatform) == platform;
 
                 // Not the best but should work...
                 if ((isWindows && fileName == $"{GuiFileName}.exe") ||
