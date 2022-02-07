@@ -24,16 +24,22 @@
 
 			<Label Grid.Column="0" Content="Text Filter" Target="{Binding ElementName=TextBoxTextFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
 			<TextBox Grid.Column="1" Name="TextBoxTextFilter" Text="{Binding ConsoleViewModel.TextFilter, Mode=TwoWay}"/>
-			<Button Grid.Column="2" Content="Pause Game" Command="{Binding ConsoleViewModel.OnClickPauseGame}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<Button Grid.Column="2" Content="{Binding ConsoleViewModel.PauseButtonText, Mode=TwoWay}" Command="{Binding ConsoleViewModel.OnClickPauseGame}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
 		</Grid>
 
-		<ListBox Items="{Binding ConsoleViewModel.ConsoleText, Mode=TwoWay}" Grid.Row="1" Name="TextListConsole">
+		<ListBox Grid.Row="1" Items="{Binding ConsoleViewModel.ConsoleText, Mode=TwoWay}" Name="TextListConsole" Background="Black">
 			<ListBox.ItemTemplate>
 				<DataTemplate>
-					<Border Background="{Binding Color}" CornerRadius="4" Padding="4">
-						<TextBlock Text="{Binding Text}"/>
-					</Border>
+					
+					<ScrollViewer>
+						<StackPanel>
+							<Border Background="{Binding Color}" CornerRadius="4" Padding="4">
+								<TextBox IsReadOnly="True" Text="{Binding Text}" MaxHeight="500" />
+							</Border>
+						</StackPanel>
+					</ScrollViewer>
+
 				</DataTemplate>
 			</ListBox.ItemTemplate>
 		</ListBox>
