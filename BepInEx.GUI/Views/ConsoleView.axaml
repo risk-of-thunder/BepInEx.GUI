@@ -28,7 +28,15 @@
 
 		</Grid>
 
-		<TextBox Grid.Row="1" Name="TextBoxConsole" IsReadOnly="True" Text="{Binding ConsoleViewModel.ConsoleText, Mode=TwoWay}"/>
+		<ListBox Items="{Binding ConsoleViewModel.ConsoleText, Mode=TwoWay}" Grid.Row="1" Name="TextListConsole">
+			<ListBox.ItemTemplate>
+				<DataTemplate>
+					<Border Background="{Binding Color}" CornerRadius="4" Padding="4">
+						<TextBlock Text="{Binding Text}"/>
+					</Border>
+				</DataTemplate>
+			</ListBox.ItemTemplate>
+		</ListBox>
 
 		<Grid Grid.Row="2">
 

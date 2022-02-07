@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using System;
+using System.Collections;
+using System.Collections.ObjectModel;
+using static BepInEx.GUI.ViewModels.ConsoleViewModel;
 
 namespace BepInEx.GUI.Views
 {
@@ -10,14 +13,18 @@ namespace BepInEx.GUI.Views
         {
             InitializeComponent();
 
-            // https://github.com/AvaloniaUI/Avalonia/issues/418
-            TextBoxConsole.GetObservable(TextBox.TextProperty).Subscribe(ScrollToEnd);
+            TextListConsole.GetObservable(ItemsControl.ItemsProperty).Subscribe(ScrollToEnd);
         }
 
-        private void ScrollToEnd(string newText)
+        private void ScrollToEnd(IEnumerable obj)
         {
-            // https://stackoverflow.com/a/58233265
-            TextBoxConsole.CaretIndex = int.MaxValue;
+            if (TextListConsole.Items != null)
+            {
+                if (TextListConsole.Items is ObservableCollection<ColoredEntry> items)
+                {
+                    TextListConsole.SelectedIndex = items.Count - 1;
+                }
+            }
         }
     }
 }
