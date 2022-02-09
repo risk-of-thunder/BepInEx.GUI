@@ -119,6 +119,7 @@ namespace BepInEx.GUI.ViewModels
                 var targetProcessName = PathsInfo.ProcessName.ToLowerInvariant();
 
                 var communities = JsonSerializer.Deserialize<Communities>(await HttpClient.GetStringAsync("https://thunderstore.io/api/experimental/community/"))!;
+                var foundDiscord = false;
                 foreach (var community in communities.Results!)
                 {
                     var communityName = community.Name;
@@ -142,7 +143,14 @@ namespace BepInEx.GUI.ViewModels
                         };
 
                         Process.Start(processInfo);
+
+                        foundDiscord = true;
                     }
+                }
+
+                if (!foundDiscord)
+                {
+                    Debug.Message("Did not find any discord for the following target process : " + targetProcessName);
                 }
             }
             catch (Exception ex)
