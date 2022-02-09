@@ -13,6 +13,9 @@ namespace BepInEx.GUI.Config
         public const string EnableDeveloperToolsText = "Enable Developer Tools";
         public static ConfigEntry<bool> EnableDeveloperToolsConfig { get; private set; }
 
+        public const string ShowOneTimeOnlyDisclaimerText = "Show One Time Only Disclaimer";
+        public static ConfigEntry<bool> ShowOneTimeOnlyDisclaimerConfig { get; private set; }
+
         public const string CloseWindowWhenGameLoadedConfigKey = "Close Window When Game Loaded";
         public const string CloseWindowWhenGameLoadedConfigDescription = "Close the graphic user interface window when the game is loaded";
         public static ConfigEntry<bool> CloseWindowWhenGameLoadedConfig { get; private set; }
@@ -26,6 +29,8 @@ namespace BepInEx.GUI.Config
             File = new ConfigFile(configFilePath, true);
 
             EnableDeveloperToolsConfig = File.Bind("Settings", EnableDeveloperToolsText, false, EnableDeveloperToolsText);
+
+            ShowOneTimeOnlyDisclaimerConfig = File.Bind("Settings", ShowOneTimeOnlyDisclaimerText, true, ShowOneTimeOnlyDisclaimerText);
 
             CloseWindowWhenGameLoadedConfig = File.Bind("Settings", CloseWindowWhenGameLoadedConfigKey, false, CloseWindowWhenGameLoadedConfigDescription);
 
