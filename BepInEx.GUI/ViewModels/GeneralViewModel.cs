@@ -116,17 +116,28 @@ namespace BepInEx.GUI.ViewModels
         {
             try
             {
-                var communities = JsonSerializer.Deserialize<Communities>(await HttpClient.GetStringAsync("https://thunderstore.io/api/experimental/community/"))!;
+                var targetProcessName = PathsInfo.ProcessName.ToLowerInvariant();
 
-                foreach (var res in communities.Results!)
+                var communities = JsonSerializer.Deserialize<Communities>(await HttpClient.GetStringAsync("https://thunderstore.io/api/experimental/community/"))!;
+                foreach (var community in communities.Results!)
                 {
-                    var processName = PathsInfo.ProcessName.ToLowerInvariant();
-                    var communityName = res.Name!.ToLowerInvariant();
-                    if (communityName.Contains(processName) || processName.Contains(communityName))
+                    var communityName = community.Name;
+                    if (string.IsNullOrWhiteSpace(communityName))
+                        continue;
+                    communityName = communityName.ToLowerInvariant();
+
+                    if (community.DiscordUrl == null)
+                        continue;
+
+                    var discordUrl = community.DiscordUrl.ToString();
+                    if (string.IsNullOrWhiteSpace(discordUrl))
+                        continue;
+
+                    if (communityName.Contains(targetProcessName) || targetProcessName.Contains(communityName))
                     {
                         var processInfo = new ProcessStartInfo
                         {
-                            FileName = res.DiscordUrl!.ToString(),
+                            FileName = discordUrl,
                             UseShellExecute = true
                         };
 
