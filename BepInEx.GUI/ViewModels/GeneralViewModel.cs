@@ -1,9 +1,13 @@
 using BepInEx.GUI.Models;
+using BepInEx.GUI.Models.Thunderstore;
 using ReactiveUI;
-using System.Collections.Generic;
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
 using WebSocketSharp;
 
 namespace BepInEx.GUI.ViewModels
@@ -11,6 +15,8 @@ namespace BepInEx.GUI.ViewModels
     public class GeneralViewModel : ViewModelBase
     {
         public PathsInfo PathsInfo { get; }
+
+        public HttpClient HttpClient { get; }
 
         public string TargetIsLoadingCanCloseWindow { get; }
 
@@ -38,6 +44,12 @@ namespace BepInEx.GUI.ViewModels
             webSocket.OnMessage += AddLoadedModToList;
 
             PlatformInfo = platformInfo;
+
+            var handler = new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+            HttpClient = new HttpClient(handler);
         }
 
         private void AddLoadedModToList(object? sender, MessageEventArgs e)
@@ -97,6 +109,34 @@ namespace BepInEx.GUI.ViewModels
             else
             {
                 Debug.Message($"{folderPath} Directory does not exist!");
+            }
+        }
+
+        public async void OnClickModdingDiscordLink()
+        {
+            try
+            {
+                var communities = JsonSerializer.Deserialize<Communities>(await HttpClient.GetStringAsync("https://thunderstore.io/api/experimental/community/"))!;
+
+                foreach (var res in communities.Results!)
+                {
+                    var processName = PathsInfo.ProcessName.ToLowerInvariant();
+                    var communityName = res.Name!.ToLowerInvariant();
+                    if (communityName.Contains(processName) || processName.Contains(communityName))
+                    {
+                        var processInfo = new ProcessStartInfo
+                        {
+                            FileName = res.DiscordUrl!.ToString(),
+                            UseShellExecute = true
+                        };
+
+                        Process.Start(processInfo);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Message(ex.ToString());
             }
         }
     }

@@ -44,48 +44,58 @@
 			
 		</Grid>
 
-		<Grid Grid.Row="2">
+		<UniformGrid Grid.Row="2" Rows="1" Columns="4" HorizontalAlignment="Stretch" Margin="10">
 
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition />
-				<ColumnDefinition />
-				<ColumnDefinition />
-			</Grid.ColumnDefinitions>
-
-			<StackPanel
+			<Grid
 				Grid.Column="0"
 				Height="50"
 				Name="StackPanel1"
-				HorizontalAlignment="Left"
-				Orientation="Horizontal">
-				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel1}" HorizontalAlignment="Left">
-					<Button Content="Open Game Folder" Command="{Binding GeneralViewModel.OnClickOpenGameFolder}" HorizontalAlignment="Left"/>
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				Margin="5">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel1}">
+					<Button Content="Open Game Folder" Command="{Binding GeneralViewModel.OnClickOpenGameFolder}"/>
 				</Viewbox>
-			</StackPanel>
+			</Grid>
 
-			<StackPanel
+			<Grid
 				Grid.Column="1"
 				Height="50"
 				Name="StackPanel2"
-				HorizontalAlignment="Center"
-				Orientation="Horizontal">
-				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel2}" HorizontalAlignment="Center">
-					<Button Content="Show Log Folder" Command="{Binding GeneralViewModel.OnClickShowLogFolder}" HorizontalAlignment="Center"/>
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				Margin="5">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel2}">
+					<Button Content="Show Log Folder" Command="{Binding GeneralViewModel.OnClickShowLogFolder}"/>
 				</Viewbox>
-			</StackPanel>
+			</Grid>
 
-			<StackPanel
+			<Grid
 				Grid.Column="2"
 				Height="50"
 				Name="StackPanel3"
-				HorizontalAlignment="Right"
-				Orientation="Horizontal">
-				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel3}" HorizontalAlignment="Right">
-					<Button Content="Show BepInEx Folder" Command="{Binding GeneralViewModel.OnClickShowBepInExFolder}" HorizontalAlignment="Right"/>
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				Margin="5">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel3}">
+					<Button Content="Show BepInEx Folder" Command="{Binding GeneralViewModel.OnClickShowBepInExFolder}"/>
 				</Viewbox>
-			</StackPanel>
+			</Grid>
 
-		</Grid>
+			<Grid
+				Grid.Column="3"
+				Height="50"
+				Name="StackPanel4"
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				Margin="5">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel4}">
+					<Button Content="Modding Discord" Command="{Binding GeneralViewModel.OnClickModdingDiscordLink}"/>
+				</Viewbox>
+			</Grid>
+
+
+		</UniformGrid>
 
 	</Grid>
 	

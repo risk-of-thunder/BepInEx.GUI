@@ -31,7 +31,7 @@ namespace BepInEx.GUI.Views
         private async void ShowUserDisclaimer()
         {
             var disclaimerWindow = new DisclaimerWindow();
-            disclaimerWindow.DataContext = new DisclaimerWindowViewModel(ViewModel!.PathsInfo);
+            disclaimerWindow.DataContext = new DisclaimerWindowViewModel();
             await disclaimerWindow.ShowDialog(this);
 
             MainConfig.ShowOneTimeOnlyDisclaimerConfig.Value = false;
