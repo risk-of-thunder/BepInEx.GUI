@@ -87,7 +87,7 @@ namespace BepInEx.GUI.ViewModels
             }
         }
 
-        public string _logFilterLevelText = "Log Filter Level : All";
+        private string _logFilterLevelText = "Log Filter Level : " + Logging.LogLevel.All;
         public string LogFilterLevelText
         {
             get { return _logFilterLevelText; }
