@@ -19,7 +19,7 @@ namespace BepInEx.GUI.Views
             this.AttachDevTools();
 #endif
 
-            if (MainConfig.ShowOneTimeOnlyDisclaimerConfig.Value)
+            if (MainConfig.ShowOneTimeOnlyDisclaimerConfig)
             {
                 this.WhenActivated((d) =>
                 {
@@ -33,9 +33,6 @@ namespace BepInEx.GUI.Views
             var disclaimerWindow = new DisclaimerWindow();
             disclaimerWindow.DataContext = new DisclaimerWindowViewModel();
             await disclaimerWindow.ShowDialog(this);
-
-            MainConfig.ShowOneTimeOnlyDisclaimerConfig.Value = false;
-            MainConfig.File.Save();
         }
 
         private void MakeTabItemsAutoSized()

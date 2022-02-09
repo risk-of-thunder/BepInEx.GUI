@@ -1,4 +1,6 @@
 ﻿using BepInEx.Configuration;
+using System;
+using System.IO;
 
 namespace BepInEx.GUI.Config
 {
@@ -13,8 +15,45 @@ namespace BepInEx.GUI.Config
         public const string EnableDeveloperToolsText = "Enable Developer Tools";
         public static ConfigEntry<bool> EnableDeveloperToolsConfig { get; private set; }
 
-        public const string ShowOneTimeOnlyDisclaimerText = "Show One Time Only Disclaimer";
-        public static ConfigEntry<bool> ShowOneTimeOnlyDisclaimerConfig { get; private set; }
+        /// <summary>
+        /// This is done through LocalApplicationData because
+        /// the BepInEx.GUI cfg file may be copied across different users 
+        /// by r2modman profile sharing feature
+        /// thus they may never end up seeing the one time only disclaimer
+        /// </summary>
+        public static bool ShowOneTimeOnlyDisclaimerConfig
+        {
+            get
+            {
+                try
+                {
+                    var localAppDataFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    if (string.IsNullOrWhiteSpace(localAppDataFolderPath))
+                    {
+                        return false;
+                    }
+
+                    var bepinexGuiAppDataFolderPath = Path.Combine(localAppDataFolderPath, "BepInEx.GUI");
+
+                    var alreadyShownDisclaimer = Directory.Exists(bepinexGuiAppDataFolderPath);
+                    if (alreadyShownDisclaimer)
+                    {
+                        return false;
+
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(bepinexGuiAppDataFolderPath);
+                        return true;
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+                return false;
+            }
+        }
 
         public const string CloseWindowWhenGameLoadedConfigKey = "Close Window When Game Loaded";
         public const string CloseWindowWhenGameLoadedConfigDescription = "Close the graphic user interface window when the game is loaded";
@@ -29,8 +68,6 @@ namespace BepInEx.GUI.Config
             File = new ConfigFile(configFilePath, true);
 
             EnableDeveloperToolsConfig = File.Bind("Settings", EnableDeveloperToolsText, false, EnableDeveloperToolsText);
-
-            ShowOneTimeOnlyDisclaimerConfig = File.Bind("Settings", ShowOneTimeOnlyDisclaimerText, true, ShowOneTimeOnlyDisclaimerText);
 
             CloseWindowWhenGameLoadedConfig = File.Bind("Settings", CloseWindowWhenGameLoadedConfigKey, false, CloseWindowWhenGameLoadedConfigDescription);
 
