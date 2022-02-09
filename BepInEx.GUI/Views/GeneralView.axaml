@@ -13,7 +13,7 @@
 			<RowDefinition Height="0.15*" />
 		</Grid.RowDefinitions>
 		
-		<TextBlock Grid.Row="0" Text="{Binding GeneralViewModel.TargetIsLoadingCanCloseWindow}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+		<TextBlock Grid.Row="0" Text="{Binding GeneralViewModel.TargetIsLoadingCanCloseWindow}" FontSize="22" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
 		<Grid Grid.Row="1">
 
@@ -47,16 +47,43 @@
 		<Grid Grid.Row="2">
 
 			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="0.33*" />
-				<ColumnDefinition Width="0.33*" />
-				<ColumnDefinition Width="0.33*" />
+				<ColumnDefinition />
+				<ColumnDefinition />
+				<ColumnDefinition />
 			</Grid.ColumnDefinitions>
 
-			<Button Grid.Column="0" Content="Open Game Folder" Command="{Binding GeneralViewModel.OnClickOpenGameFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<StackPanel
+				Grid.Column="0"
+				Height="50"
+				Name="StackPanel1"
+				HorizontalAlignment="Left"
+				Orientation="Horizontal">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel1}" HorizontalAlignment="Left">
+					<Button Content="Open Game Folder" Command="{Binding GeneralViewModel.OnClickOpenGameFolder}" HorizontalAlignment="Left"/>
+				</Viewbox>
+			</StackPanel>
 
-			<Button Grid.Column="1" Content="Show Log Folder" Command="{Binding GeneralViewModel.OnClickShowLogFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-			
-			<Button Grid.Column="2" Content="Show BepInEx Folder" Command="{Binding GeneralViewModel.OnClickShowBepInExFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<StackPanel
+				Grid.Column="1"
+				Height="50"
+				Name="StackPanel2"
+				HorizontalAlignment="Center"
+				Orientation="Horizontal">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel2}" HorizontalAlignment="Center">
+					<Button Content="Show Log Folder" Command="{Binding GeneralViewModel.OnClickShowLogFolder}" HorizontalAlignment="Center"/>
+				</Viewbox>
+			</StackPanel>
+
+			<StackPanel
+				Grid.Column="2"
+				Height="50"
+				Name="StackPanel3"
+				HorizontalAlignment="Right"
+				Orientation="Horizontal">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel3}" HorizontalAlignment="Right">
+					<Button Content="Show BepInEx Folder" Command="{Binding GeneralViewModel.OnClickShowBepInExFolder}" HorizontalAlignment="Right"/>
+				</Viewbox>
+			</StackPanel>
 
 		</Grid>
 
