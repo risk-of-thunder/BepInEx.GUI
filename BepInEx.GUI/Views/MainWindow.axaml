@@ -8,6 +8,7 @@
         x:Class="BepInEx.GUI.Views.MainWindow"
 		Name="MainGuiWindow"
         Icon="/Assets/avalonia-logo.ico"
+		WindowStartupLocation="CenterScreen"
         Title="{Binding WindowInfo.Title}">
 
 		<TabControl>
@@ -16,7 +17,7 @@
 				<views:GeneralView></views:GeneralView>
 			</TabItem>
 
-			<TabItem Header="Console" Name="ConsoleTabItem" HorizontalContentAlignment="Center">
+			<TabItem Header="Console" Name="ConsoleTabItem" HorizontalContentAlignment="Center" IsVisible="{Binding SettingsViewModel.EnableDeveloperTools}">
 				<views:ConsoleView></views:ConsoleView>
 			</TabItem>
 

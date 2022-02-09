@@ -25,7 +25,7 @@ namespace BepInEx.GUI.ViewModels
 
             ConsoleViewModel = new ConsoleViewModel(webSocket, targetInfo, platformInfo);
 
-            SettingsViewModel = new SettingsViewModel(PathsInfo, targetInfo);
+            SettingsViewModel = new SettingsViewModel(targetInfo);
         }
     }
 }

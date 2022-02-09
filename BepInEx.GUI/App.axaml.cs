@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using BepInEx.GUI.Config;
 using BepInEx.GUI.Models;
 using BepInEx.GUI.ViewModels;
 using BepInEx.GUI.Views;
@@ -32,6 +33,8 @@ namespace BepInEx.GUI
 
                     var webSocket = new WebSocket("ws://localhost:5892/Log");
                     webSocket.Connect();
+
+                    MainConfig.Init(pathsInfo.ConfigFilePath);
 
                     desktop.MainWindow = new MainWindow
                     {
