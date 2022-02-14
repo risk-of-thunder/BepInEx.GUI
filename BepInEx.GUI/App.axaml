@@ -2,11 +2,51 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:BepInEx.GUI"
              x:Class="BepInEx.GUI.App">
+	
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
 
     <Application.Styles>
+		
         <FluentTheme Mode="Dark"/>
+
+		<Style Selector="ScrollBar[IsExpanded=false] /template/ Grid#Root">
+			<Setter Property="Background" Value="{DynamicResource ScrollBarBackgroundPointerOver}" />
+		</Style>
+
+		<Style Selector="ScrollBar[IsExpanded=false] /template/ Thumb.thumb">
+			<Setter Property="RenderTransform" Value="none" />
+			<Setter Property="Background" Value="{DynamicResource ScrollBarThumbBackgroundColor}" />
+		</Style>
+
+		<Style Selector="ScrollBar[IsExpanded=false] /template/ Thumb.thumb /template/ Border#ThumbVisual">
+			<Setter Property="CornerRadius" Value="0" />
+		</Style>
+
+		<Style Selector="ScrollBar[IsExpanded=false] /template/ RepeatButton.line">
+			<Setter Property="Opacity" Value="1" />
+		</Style>
+
+		<Style Selector="ScrollBar[IsExpanded=false] /template/ RepeatButton.largeIncrease">
+			<Setter Property="Opacity" Value="1" />
+		</Style>
+
+		<Style Selector="ScrollBar[IsExpanded=false] /template/ Rectangle#TrackRect">
+			<Setter Property="Fill" Value="{DynamicResource ScrollBarTrackFillPointerOver}" />
+			<Setter Property="Stroke" Value="{DynamicResource ScrollBarTrackStrokePointerOver}" />
+			<Setter Property="Opacity" Value="1" />
+		</Style>
+
+		<Style Selector="ScrollBar /template/ RepeatButton.line /template/ Border#Root" >
+			<Setter Property="Background" Value="{DynamicResource ScrollBarButtonBackgroundPointerOver}" />
+			<Setter Property="BorderBrush" Value="{DynamicResource ScrollBarButtonBorderBrushPointerOver}" />
+		</Style>
+
+		<Style Selector="ScrollBar /template/ RepeatButton.line /template/ Path#Arrow" >
+			<Setter Property="Fill" Value="{DynamicResource ScrollBarButtonArrowForegroundPointerOver}" />
+		</Style>
+
     </Application.Styles>
+	
 </Application>
