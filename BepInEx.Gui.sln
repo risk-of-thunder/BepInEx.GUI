@@ -9,6 +9,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BepInEx.GUI.Patcher", "BepI
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "BepInEx.GUI.Config", "BepInEx.GUI.Config\BepInEx.GUI.Config.shproj", "{CE23B15B-5A75-4334-AE72-3F9BE842904B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{5DA2A443-8F2B-4CB9-A9CA-E25F0F4D275E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{1868D5F0-B174-4978-98A4-0ADDAB9CF470}"
+	ProjectSection(SolutionItems) = preProject
+		github-release.yml = github-release.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		BepInEx.GUI.Config\BepInEx.GUI.Config.projitems*{13e68146-7861-4b27-9242-8f2c23348348}*SharedItemsImports = 5
@@ -31,6 +38,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1868D5F0-B174-4978-98A4-0ADDAB9CF470} = {5DA2A443-8F2B-4CB9-A9CA-E25F0F4D275E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2E16FB29-576F-416D-9FD6-AB977C6C606D}

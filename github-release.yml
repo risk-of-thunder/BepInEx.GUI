@@ -1,0 +1,36 @@
+name: GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v20.15.10
+
+jobs:
+  tagged-release:
+    name: "Tagged Release"
+    runs-on: "ubuntu-latest"
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Dotnet Setup
+      uses: actions/setup-dotnet@v1
+
+    - name: Publish Windows
+      run: dotnet publish -c Release --sc -r win-x64 --output ./WindowsRelease
+
+    - name: Zip Windows Release
+      uses: papeloto/action-zip@v1
+      with:
+        files: WindowsRelease/
+        dest: BepInEx_GUI_${{github.ref_name}}.zip
+
+    - name: "Make GitHub Release"
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        files: |
+          *.zip
