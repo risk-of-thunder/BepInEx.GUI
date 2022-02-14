@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using Mono.Cecil;
 using MonoMod.Utils;
