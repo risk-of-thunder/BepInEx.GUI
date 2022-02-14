@@ -24,7 +24,8 @@
 
 			<TextBlock Grid.Row="0" Text="{Binding GeneralViewModel.LoadedModCountText, Mode=TwoWay}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
-			<ListBox Grid.Row="1" Name="LoadedModsList" Items="{Binding GeneralViewModel.Mods}">
+			<ListBox Grid.Row="1" Name="LoadedModsList" Items="{Binding GeneralViewModel.Mods}" Background="Transparent">
+
 				<ListBox.ItemTemplate>
 					<DataTemplate>
 						<Grid>
