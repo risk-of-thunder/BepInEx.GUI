@@ -9,18 +9,38 @@ namespace BepInEx.GUI.Views
     {
         public static bool ConsoleAutoScroll = true;
 
+        private static bool _logEntryCountJustChanged;
+
+        private static ConsoleView? _instance;
+
         public ConsoleView()
         {
             InitializeComponent();
 
-            ConsoleItemsRepeater.GetObservable(ItemsControl.ItemsProperty).Subscribe(ScrollToEnd);
+            ConsoleItemsRepeater.GetObservable(ItemsControl.ItemsProperty).Subscribe(LogEntryCountChanged);
+
+            ConsoleScrollViewer.ScrollChanged += AutoScroll;
+
+            _instance = this;
         }
 
-        private void ScrollToEnd(IEnumerable obj)
+        public static void ScrollToEnd()
         {
-            if (ConsoleAutoScroll)
+            _instance?.ConsoleScrollViewer?.ScrollToEnd();
+        }
+
+        private void LogEntryCountChanged(IEnumerable obj)
+        {
+            _logEntryCountJustChanged = true;
+        }
+
+        private void AutoScroll(object? sender, ScrollChangedEventArgs e)
+        {
+            if (ConsoleAutoScroll && e.ExtentDelta.Y != 0 && _logEntryCountJustChanged)
             {
                 ConsoleScrollViewer.ScrollToEnd();
+
+                _logEntryCountJustChanged = false;
             }
         }
     }
