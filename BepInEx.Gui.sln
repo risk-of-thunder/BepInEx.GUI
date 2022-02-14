@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{5DA2
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{1868D5F0-B174-4978-98A4-0ADDAB9CF470}"
 	ProjectSection(SolutionItems) = preProject
-		github-release.yml = github-release.yml
+		.github\workflows\github-release.yml = .github\workflows\github-release.yml
 	EndProjectSection
 EndProject
 Global
