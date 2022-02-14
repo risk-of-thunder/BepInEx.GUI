@@ -65,7 +65,7 @@ namespace BepInEx.GUI.Patcher
                 // Not the best but should work...
                 if ((isWindows && fileName == $"{GuiFileName}.exe") ||
                     (isLinux && fileName == GuiFileName && filePath.ToLowerInvariant().Contains("linux")) ||
-                    (isMacOs && fileName == GuiFileName && filePath.ToLowerInvariant().Contains("osx")))
+                    (isMacOs && fileName == GuiFileName && filePath.ToLowerInvariant().Contains("macos")))
                 {
                     return filePath;
                 }
