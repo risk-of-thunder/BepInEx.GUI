@@ -48,6 +48,7 @@ namespace BepInEx.GUI.ViewModels
             {
                 ConsoleView.ConsoleAutoScroll = value;
                 this.RaiseAndSetIfChanged(ref _consoleAutoScroll, value);
+                ConsoleView.ScrollToEnd();
             }
         }
 
@@ -128,6 +129,7 @@ namespace BepInEx.GUI.ViewModels
                 if (logEntry.LevelCode <= _allowedLogLevel)
                 {
                     var logEntryString = logEntry.ToString();
+
                     string color = logEntry.LevelCode switch
                     {
                         Logging.LogLevel.Fatal => "Red",
@@ -135,6 +137,7 @@ namespace BepInEx.GUI.ViewModels
                         Logging.LogLevel.Warning => "YellowGreen",
                         _ => "Transparent",
                     };
+
                     if (TextFilter.Length > 0)
                     {
                         if (logEntryString.ToLowerInvariant().Contains(TextFilter.ToLowerInvariant()))
