@@ -1,0 +1,54 @@
+name: GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v20.15.10
+
+jobs:
+  tagged-release:
+    name: "Tagged Release"
+    runs-on: "ubuntu-latest"
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Dotnet Setup
+      uses: actions/setup-dotnet@v1
+
+    - name: Publish Windows
+      run: dotnet publish -c Release --sc -r win-x64 --output ./Windows_x64_Release
+
+    - name: Zip Windows x64 Release
+      uses: papeloto/action-zip@v1
+      with:
+        files: Windows_x64_Release/
+        dest: BepInEx_GUI_win_x64_${{github.ref_name}}.zip
+
+    - name: Publish Linux x64
+      run: dotnet publish -c Release --sc -r linux-x64 --output ./Linux_x64_Release
+
+    - name: Zip Linux x64 Release
+      uses: papeloto/action-zip@v1
+      with:
+        files: Linux_x64_Release/
+        dest: BepInEx_GUI_linux_x64_${{github.ref_name}}.zip
+
+    - name: Publish macOS x64
+      run: dotnet publish -c Release --sc -r osx-x64 --output ./macOS_x64_Release
+
+    - name: Zip macOS x64 Release
+      uses: papeloto/action-zip@v1
+      with:
+        files: macOS_x64_Release/
+        dest: BepInEx_GUI_macOS_x64_${{github.ref_name}}.zip
+
+    - name: "Make GitHub Release"
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        files: |
+          *.zip
