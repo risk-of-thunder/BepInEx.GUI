@@ -48,7 +48,9 @@ namespace BepInEx.GUI.ViewModels
             {
                 ConsoleView.ConsoleAutoScroll = value;
                 this.RaiseAndSetIfChanged(ref _consoleAutoScroll, value);
-                ConsoleView.ScrollToEnd();
+
+                if (ConsoleView.ConsoleAutoScroll)
+                    ConsoleView.ScrollToEnd();
             }
         }
 
