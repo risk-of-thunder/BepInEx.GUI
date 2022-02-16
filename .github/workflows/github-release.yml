@@ -18,7 +18,7 @@ jobs:
     - name: Dotnet Setup
       uses: actions/setup-dotnet@v1
 
-    - name: Publish Windows
+    - name: Publish Windows x64
       run: dotnet publish -c Release --sc -r win-x64 --output ./Windows_x64_Release
 
     - name: Zip Windows x64 Release
@@ -26,6 +26,15 @@ jobs:
       with:
         files: Windows_x64_Release/
         dest: BepInEx_GUI_win_x64_${{github.ref_name}}.zip
+
+    - name: Publish Windows x86
+      run: dotnet publish -c Release --sc -r win-x86 --output ./Windows_x86_Release
+
+    - name: Zip Windows x86 Release
+      uses: papeloto/action-zip@v1
+      with:
+        files: Windows_x86_Release/
+        dest: BepInEx_GUI_win_x86_${{github.ref_name}}.zip
 
     - name: Publish Linux x64
       run: dotnet publish -c Release --sc -r linux-x64 --output ./Linux_x64_Release

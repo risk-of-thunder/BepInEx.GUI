@@ -53,11 +53,10 @@ namespace BepInEx.GUI.Patcher
                 const string GuiFileName = "BepInEx.GUI";
 
                 const Platform windowsPlatform = Platform.Windows;
-                const Platform linuxPlatform = Platform.Linux;
-                const Platform macOSPlatform = Platform.MacOS;
-
                 const Platform windowsX64Platform = Platform.Windows | Platform.Bits64;
+
                 const Platform linuxX64Platform = Platform.Linux | Platform.Bits64;
+
                 const Platform macOsX64Platform = Platform.MacOS | Platform.Bits64;
 
                 var platform = PlatformHelper.Current;
@@ -65,10 +64,9 @@ namespace BepInEx.GUI.Patcher
                 var isWindows = (platform & windowsPlatform) == platform;
                 var isWindows64 = (platform & windowsX64Platform) == platform;
 
-                var isLinux = (platform & linuxPlatform) == platform;
+                // linux x86 https://github.com/dotnet/runtime/issues/31180
                 var isLinux64 = (platform & linuxX64Platform) == platform;
 
-                var isMacOs = (platform & macOSPlatform) == platform;
                 var isMacOs64 = (platform & macOsX64Platform) == platform;
 
                 var filePathLower = filePath.ToLowerInvariant();
@@ -78,10 +76,8 @@ namespace BepInEx.GUI.Patcher
                     (isWindows && fileName == $"{GuiFileName}.exe" && filePathLower.Contains("86")) ||
                     (isWindows64 && fileName == $"{GuiFileName}.exe" && filePathLower.Contains("64")) ||
 
-                    (isLinux && fileName == GuiFileName && filePathLower.Contains("linux86")) ||
                     (isLinux64 && fileName == GuiFileName && filePathLower.Contains("linux64")) ||
 
-                    (isMacOs && fileName == GuiFileName && filePathLower.Contains("macos86")) ||
                     (isMacOs64 && fileName == GuiFileName && filePathLower.Contains("macos64"))
                     )
                 {
