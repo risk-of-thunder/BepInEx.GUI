@@ -20,7 +20,7 @@ namespace BepInEx.GUI.ViewModels
 
         public string TargetIsLoadingCanCloseWindow { get; }
 
-        private string _loadedModCountText;
+        private string _loadedModCountText = "";
         public string LoadedModCountText
         {
             get { return _loadedModCountText; }
