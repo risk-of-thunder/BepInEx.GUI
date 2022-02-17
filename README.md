@@ -25,3 +25,12 @@ that allow BepInEx patchers to depends on other patchers
 - Download the .zip release corresponding to your OS
 
 - Extract the .zip into the `BepInEx\patchers` folder
+
+### Create a GitHub release through GitHub Action
+
+```shell
+git tag v1.0.0
+git push --tags
+```
+
+This will make a new GitHub release with the given version number
