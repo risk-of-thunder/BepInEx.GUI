@@ -23,7 +23,6 @@ namespace BepInEx.GUI.Patcher
 
             if (eventArgs.Data.ToString() == "Chainloader startup complete" && eventArgs.Level.Equals(LogLevel.Message))
             {
-
                 MainConfig.Init(Path.Combine(Paths.ConfigPath, MainConfig.FileName));
                 if (MainConfig.CloseWindowWhenGameLoadedConfig.Value)
                 {

@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BepInEx.Core" Version="5.4.17" />
+    <PackageReference Include="BepInEx.Core" Version="5.4.19" />
   </ItemGroup>
 
   <Import Project="..\BepInEx.GUI.Config\BepInEx.GUI.Config.projitems" Label="Shared" />

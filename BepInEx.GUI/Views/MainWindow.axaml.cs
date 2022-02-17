@@ -1,10 +1,13 @@
 using Avalonia;
-using Avalonia.Controls;
+using Avalonia.ReactiveUI;
+using BepInEx.GUI.Config;
+using BepInEx.GUI.ViewModels;
+using ReactiveUI;
 using System;
 
 namespace BepInEx.GUI.Views
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
         public MainWindow()
         {
@@ -15,6 +18,21 @@ namespace BepInEx.GUI.Views
 #if DEBUG
             this.AttachDevTools();
 #endif
+
+            if (MainConfig.ShowOneTimeOnlyDisclaimerConfig)
+            {
+                this.WhenActivated((d) =>
+                {
+                    ShowUserDisclaimer();
+                });
+            }
+        }
+
+        private async void ShowUserDisclaimer()
+        {
+            var disclaimerWindow = new DisclaimerWindow();
+            disclaimerWindow.DataContext = new DisclaimerWindowViewModel();
+            await disclaimerWindow.ShowDialog(this);
         }
 
         private void MakeTabItemsAutoSized()

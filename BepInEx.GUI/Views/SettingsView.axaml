@@ -19,7 +19,15 @@
 				<ColumnDefinition Width="*" />
 			</Grid.ColumnDefinitions>
 
-			<CheckBox Grid.Column="0" Content="Enable Developer Tools" IsChecked="{Binding SettingsViewModel.EnableDeveloperTools, Mode=TwoWay}" />
+			<StackPanel
+				Grid.Column="0"
+				Height="80"
+				Name="StackPanel1"
+				Orientation="Horizontal">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel1}">
+					<CheckBox Content="Enable Developer Tools" IsChecked="{Binding SettingsViewModel.EnableDeveloperTools, Mode=TwoWay}" />
+				</Viewbox>
+			</StackPanel>
 
 		</Grid>
 
@@ -29,7 +37,15 @@
 				<ColumnDefinition Width="*" />
 			</Grid.ColumnDefinitions>
 
-			<CheckBox Grid.Column="0" Content="Close this window when game is loaded" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameLoaded, Mode=TwoWay}" />
+			<StackPanel
+				Grid.Column="0"
+				Height="80"
+				Name="StackPanel2"
+				Orientation="Horizontal">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel2}">
+					<CheckBox Content="Close this window when game is loaded" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameLoaded, Mode=TwoWay}" />
+				</Viewbox>
+			</StackPanel>
 
 		</Grid>
 
@@ -39,7 +55,15 @@
 				<ColumnDefinition Width="*" />
 			</Grid.ColumnDefinitions>
 
-			<CheckBox Grid.Column="0" Content="Close this window when the game closes" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameCloses, Mode=TwoWay}" />
+			<StackPanel
+				Grid.Column="0"
+				Height="80"
+				Name="StackPanel3"
+				Orientation="Horizontal">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel3}">
+					<CheckBox Content="Close this window when the game closes" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameCloses, Mode=TwoWay}" />
+				</Viewbox>
+			</StackPanel>
 
 		</Grid>
 

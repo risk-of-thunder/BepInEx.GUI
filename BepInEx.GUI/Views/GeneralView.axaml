@@ -13,7 +13,7 @@
 			<RowDefinition Height="0.15*" />
 		</Grid.RowDefinitions>
 		
-		<TextBlock Grid.Row="0" Text="{Binding GeneralViewModel.TargetIsLoadingCanCloseWindow}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+		<TextBlock Grid.Row="0" Text="{Binding GeneralViewModel.TargetIsLoadingCanCloseWindow}" FontSize="22" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
 		<Grid Grid.Row="1">
 
@@ -24,7 +24,8 @@
 
 			<TextBlock Grid.Row="0" Text="{Binding GeneralViewModel.LoadedModCountText, Mode=TwoWay}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
-			<ListBox Grid.Row="1" Name="LoadedModsList" Items="{Binding GeneralViewModel.Mods}">
+			<ListBox Grid.Row="1" Name="LoadedModsList" Items="{Binding GeneralViewModel.Mods}" Background="Transparent">
+
 				<ListBox.ItemTemplate>
 					<DataTemplate>
 						<Grid>
@@ -44,21 +45,58 @@
 			
 		</Grid>
 
-		<Grid Grid.Row="2">
+		<UniformGrid Grid.Row="2" Rows="1" Columns="4" HorizontalAlignment="Stretch" Margin="10">
 
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="0.33*" />
-				<ColumnDefinition Width="0.33*" />
-				<ColumnDefinition Width="0.33*" />
-			</Grid.ColumnDefinitions>
+			<Grid
+				Grid.Column="0"
+				Height="50"
+				Name="StackPanel1"
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				Margin="5">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel1}">
+					<Button Content="Open Game Folder" Command="{Binding GeneralViewModel.OnClickOpenGameFolder}"/>
+				</Viewbox>
+			</Grid>
 
-			<Button Grid.Column="0" Content="Open Game Folder" Command="{Binding GeneralViewModel.OnClickOpenGameFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<Grid
+				Grid.Column="1"
+				Height="50"
+				Name="StackPanel2"
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				Margin="5">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel2}">
+					<Button Content="Show Log Folder" Command="{Binding GeneralViewModel.OnClickShowLogFolder}"/>
+				</Viewbox>
+			</Grid>
 
-			<Button Grid.Column="1" Content="Show Log Folder" Command="{Binding GeneralViewModel.OnClickShowLogFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-			
-			<Button Grid.Column="2" Content="Show BepInEx Folder" Command="{Binding GeneralViewModel.OnClickShowBepInExFolder}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<Grid
+				Grid.Column="2"
+				Height="50"
+				Name="StackPanel3"
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				Margin="5">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel3}">
+					<Button Content="Show BepInEx Folder" Command="{Binding GeneralViewModel.OnClickShowBepInExFolder}"/>
+				</Viewbox>
+			</Grid>
 
-		</Grid>
+			<Grid
+				Grid.Column="3"
+				Height="50"
+				Name="StackPanel4"
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				Margin="5">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel4}">
+					<Button Content="Modding Discord" Command="{Binding GeneralViewModel.OnClickModdingDiscordLink}"/>
+				</Viewbox>
+			</Grid>
+
+
+		</UniformGrid>
 
 	</Grid>
 	

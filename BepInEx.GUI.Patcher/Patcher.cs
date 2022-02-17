@@ -1,4 +1,4 @@
-﻿using BepInEx.Configuration;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using Mono.Cecil;
 using MonoMod.Utils;
@@ -10,6 +10,7 @@ using System.Reflection;
 
 namespace BepInEx.GUI.Patcher
 {
+    [BepInDependency("PassivePicasso.WebSlog.WebSocketLogServer", BepInDependency.DependencyFlags.HardDependency)]
     public static class Patcher
     {
         public static IEnumerable<string> TargetDLLs => Enumerable.Empty<string>();
@@ -31,16 +32,23 @@ namespace BepInEx.GUI.Patcher
             }
             else
             {
-                string executablePath = FindGuiExecutable();
-                if (executablePath != null)
-                {
-                    LaunchGui(executablePath);
-                }
-                else
-                {
-                    LogSource.LogMessage("BepInEx.GUI executable not found.");
-                    LogSource.Dispose();
-                }
+                FindAndLaunchGui();
+            }
+        }
+
+        private static void FindAndLaunchGui()
+        {
+            Patcher.LogSource.LogMessage("Finding and launching GUI");
+
+            string executablePath = FindGuiExecutable();
+            if (executablePath != null)
+            {
+                LaunchGui(executablePath);
+            }
+            else
+            {
+                LogSource.LogMessage("BepInEx.GUI executable not found.");
+                LogSource.Dispose();
             }
         }
 
@@ -52,20 +60,34 @@ namespace BepInEx.GUI.Patcher
 
                 const string GuiFileName = "BepInEx.GUI";
 
+                const Platform windowsPlatform = Platform.Windows;
                 const Platform windowsX64Platform = Platform.Windows | Platform.Bits64;
+
                 const Platform linuxX64Platform = Platform.Linux | Platform.Bits64;
+
                 const Platform macOsX64Platform = Platform.MacOS | Platform.Bits64;
 
                 var platform = PlatformHelper.Current;
 
-                var isWindows = (platform & windowsX64Platform) == platform;
-                var isLinux = (platform & linuxX64Platform) == platform;
-                var isMacOs = (platform & macOsX64Platform) == platform;
+                var isWindows = (platform & windowsPlatform) == platform;
+                var isWindows64 = (platform & windowsX64Platform) == platform;
+
+                // linux x86 https://github.com/dotnet/runtime/issues/31180
+                var isLinux64 = (platform & linuxX64Platform) == platform;
+
+                var isMacOs64 = (platform & macOsX64Platform) == platform;
+
+                var filePathLower = filePath.ToLowerInvariant();
 
                 // Not the best but should work...
-                if ((isWindows && fileName == $"{GuiFileName}.exe") ||
-                    (isLinux && fileName == GuiFileName && filePath.ToLowerInvariant().Contains("linux")) ||
-                    (isMacOs && fileName == GuiFileName && filePath.ToLowerInvariant().Contains("osx")))
+                if (
+                    (isWindows && fileName == $"{GuiFileName}.exe" && filePathLower.Contains("86")) ||
+                    (isWindows64 && fileName == $"{GuiFileName}.exe" && filePathLower.Contains("64")) ||
+
+                    (isLinux64 && fileName == GuiFileName && filePathLower.Contains("linux64")) ||
+
+                    (isMacOs64 && fileName == GuiFileName && filePathLower.Contains("macos64"))
+                    )
                 {
                     return filePath;
                 }

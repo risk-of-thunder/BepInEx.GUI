@@ -36,7 +36,7 @@ namespace BepInEx.GUI.Models
             }
             catch (Exception e)
             {
-                // todo
+                Debug.Message($"Error deserializing log entry: {e}");
             }
 
             return null;

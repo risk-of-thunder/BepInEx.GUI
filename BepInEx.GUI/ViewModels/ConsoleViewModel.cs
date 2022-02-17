@@ -1,19 +1,58 @@
 using BepInEx.GUI.Models;
+using BepInEx.GUI.Views;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Collections.ObjectModel;
 using WebSocketSharp;
 
 namespace BepInEx.GUI.ViewModels
 {
     public class ConsoleViewModel : ViewModelBase
     {
+        public class ColoredEntry
+        {
+            public string Text { get; set; }
+            public string Color { get; set; }
+
+            public ColoredEntry(string text, string color)
+            {
+                Text = text;
+                Color = color;
+            }
+        }
+
         public WebSocket WebSocket { get; }
 
         public TargetInfo TargetInfo { get; }
 
+        public PlatformInfo PlatformInfo { get; }
+
         public List<LogEntry> LogEntries { get; }
+
+        private string _pauseButtonText = "Pause Game";
+        public string PauseButtonText
+        {
+            get { return _pauseButtonText; }
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _pauseButtonText, value);
+            }
+        }
+
+        private bool _consoleAutoScroll = true;
+        public bool ConsoleAutoScroll
+        {
+            get { return _consoleAutoScroll; }
+            set
+            {
+                ConsoleView.ConsoleAutoScroll = value;
+                this.RaiseAndSetIfChanged(ref _consoleAutoScroll, value);
+
+                if (ConsoleView.ConsoleAutoScroll)
+                    ConsoleView.ScrollToEnd();
+            }
+        }
 
         private string _textFilter = "";
         public string TextFilter
@@ -26,8 +65,8 @@ namespace BepInEx.GUI.ViewModels
             }
         }
 
-        private string _consoleText = "";
-        public string ConsoleText
+        private ObservableCollection<ColoredEntry> _consoleText = new();
+        public ObservableCollection<ColoredEntry> ConsoleText
         {
             get { return _consoleText; }
             set
@@ -46,16 +85,29 @@ namespace BepInEx.GUI.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _logFilterLevel, value);
                 _allowedLogLevel = _logLevels[_logFilterLevel];
+                LogFilterLevelText = "Log Filter Level : " + _allowedLogLevel.ToString();
                 UpdateConsoleBox();
             }
         }
 
-        public ConsoleViewModel(WebSocket webSocket, TargetInfo targetInfo)
+        private string _logFilterLevelText = "Log Filter Level : " + Logging.LogLevel.All;
+        public string LogFilterLevelText
+        {
+            get { return _logFilterLevelText; }
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _logFilterLevelText, value);
+            }
+        }
+
+        public ConsoleViewModel(WebSocket webSocket, TargetInfo targetInfo, PlatformInfo platformInfo)
         {
             WebSocket = webSocket;
             WebSocket.OnMessage += AddLogToConsole;
 
             TargetInfo = targetInfo;
+
+            PlatformInfo = platformInfo;
 
             LogEntries = new();
         }
@@ -72,42 +124,59 @@ namespace BepInEx.GUI.ViewModels
 
         private void UpdateConsoleBox()
         {
-            var stringBuilder = new StringBuilder();
+            var consoleText = new ObservableCollection<ColoredEntry>();
 
             foreach (var logEntry in LogEntries)
             {
                 if (logEntry.LevelCode <= _allowedLogLevel)
                 {
+                    var logEntryString = logEntry.ToString();
+
+                    string color = logEntry.LevelCode switch
+                    {
+                        Logging.LogLevel.Fatal => "Red",
+                        Logging.LogLevel.Error => "Red",
+                        Logging.LogLevel.Warning => "YellowGreen",
+                        _ => "Transparent",
+                    };
+
                     if (TextFilter.Length > 0)
                     {
-                        var logEntryString = logEntry.ToString();
                         if (logEntryString.ToLowerInvariant().Contains(TextFilter.ToLowerInvariant()))
                         {
-                            stringBuilder.AppendLine(logEntryString);
+                            consoleText.Add(new ColoredEntry(logEntryString, color));
                         }
                     }
                     else
                     {
-                        stringBuilder.AppendLine(logEntry.ToString());
+                        consoleText.Add(new ColoredEntry(logEntryString, color));
                     }
                 }
             }
 
-            ConsoleText = stringBuilder.ToString();
+            ConsoleText = consoleText;
         }
 
         private bool _isTargetPaused;
         public void OnClickPauseGame()
         {
+            if (!PlatformInfo.IsWindows)
+            {
+                Debug.Message("Windows only feature.");
+                return;
+            }
+
             if (TargetInfo.Process != null && TargetInfo.Id != 0 && !TargetInfo.Process.HasExited)
             {
                 if (_isTargetPaused)
                 {
                     TargetInfo.Process.Resume();
+                    PauseButtonText = "Pause Game";
                 }
                 else
                 {
                     TargetInfo.Process.Suspend();
+                    PauseButtonText = "Resume Game";
                 }
 
                 _isTargetPaused = !_isTargetPaused;
