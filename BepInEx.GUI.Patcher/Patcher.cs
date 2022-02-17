@@ -10,6 +10,7 @@ using System.Reflection;
 
 namespace BepInEx.GUI.Patcher
 {
+    [BepInDependency("PassivePicasso.WebSlog.WebSocketLogServer", BepInDependency.DependencyFlags.HardDependency)]
     public static class Patcher
     {
         public static IEnumerable<string> TargetDLLs => Enumerable.Empty<string>();
