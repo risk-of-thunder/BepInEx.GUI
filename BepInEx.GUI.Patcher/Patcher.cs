@@ -31,16 +31,23 @@ namespace BepInEx.GUI.Patcher
             }
             else
             {
-                string executablePath = FindGuiExecutable();
-                if (executablePath != null)
-                {
-                    LaunchGui(executablePath);
-                }
-                else
-                {
-                    LogSource.LogMessage("BepInEx.GUI executable not found.");
-                    LogSource.Dispose();
-                }
+                FindAndLaunchGui();
+            }
+        }
+
+        private static void FindAndLaunchGui()
+        {
+            Patcher.LogSource.LogMessage("Finding and launching GUI");
+
+            string executablePath = FindGuiExecutable();
+            if (executablePath != null)
+            {
+                LaunchGui(executablePath);
+            }
+            else
+            {
+                LogSource.LogMessage("BepInEx.GUI executable not found.");
+                LogSource.Dispose();
             }
         }
 
