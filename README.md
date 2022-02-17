@@ -4,6 +4,7 @@ BepInEx.GUI is a graphical user interface (GUI) meant to replace the regular con
 
 ### Features
 
+- One time only disclaimer that give a quick guide on how to report mod issues properly for end users
 - Show loaded mods when game is starting
 - Buttons for fast access to the game modding discord, BepInEx folder, log folder
 - Button for pausing game (Windows only)
