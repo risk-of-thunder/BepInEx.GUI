@@ -20,7 +20,7 @@ namespace BepInEx.GUI.ViewModels
 
         public string TargetIsLoadingCanCloseWindow { get; }
 
-        private string _loadedModCountText = "";
+        private string _loadedModCountText;
         public string LoadedModCountText
         {
             get { return _loadedModCountText; }
@@ -39,6 +39,8 @@ namespace BepInEx.GUI.ViewModels
             PathsInfo = pathsInfo;
 
             TargetIsLoadingCanCloseWindow = $"{pathsInfo.ProcessName} is loading, you can safely close this window.";
+
+            LoadedModCountText = "No plugins loaded.";
 
             Mods = new ObservableCollection<Mod>();
             webSocket.OnMessage += AddLoadedModToList;
