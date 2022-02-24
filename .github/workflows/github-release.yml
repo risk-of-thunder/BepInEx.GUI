@@ -18,43 +18,46 @@ jobs:
     - name: Dotnet Setup
       uses: actions/setup-dotnet@v1
 
+    - name: Build Patcher
+      run: dotnet build .\BepInEx.GUI.Patcher\BepInEx.GUI.Patcher.csproj -c Release -o .\BepInEx_GUI_Patcher_${{github.ref_name}}
+
     - name: Publish Windows x64
-      run: dotnet publish -c Release --sc -r win-x64 --output ./BepInEx_GUI_win_x64_${{github.ref_name}}
+      run: dotnet publish .\BepInEx.GUI\BepInEx.GUI.csproj -c Release -p:PublishSingleFile=true --sc -r win-x64 --output ./BepInEx_GUI_win_x64_${{github.ref_name}}
 
     - name: Zip Windows x64 Release
       uses: papeloto/action-zip@v1
       with:
-        files: BepInEx_GUI_win_x64_${{github.ref_name}}/
+        files: BepInEx_GUI_win_x64_${{github.ref_name}}/  BepInEx_GUI_Patcher_${{github.ref_name}}/
         recursive: false
         dest: BepInEx_GUI_win_x64_${{github.ref_name}}.zip
 
     - name: Publish Windows x86
-      run: dotnet publish -c Release --sc -r win-x86 --output ./BepInEx_GUI_win_x86_${{github.ref_name}}
+      run: dotnet publish .\BepInEx.GUI\BepInEx.GUI.csproj -c Release -p:PublishSingleFile=true --sc -r win-x86 --output ./BepInEx_GUI_win_x86_${{github.ref_name}}
 
     - name: Zip Windows x86 Release
       uses: papeloto/action-zip@v1
       with:
-        files: BepInEx_GUI_win_x86_${{github.ref_name}}/
+        files: BepInEx_GUI_win_x86_${{github.ref_name}}/ BepInEx_GUI_Patcher_${{github.ref_name}}/
         recursive: false
         dest: BepInEx_GUI_win_x86_${{github.ref_name}}.zip
 
     - name: Publish Linux x64
-      run: dotnet publish -c Release --sc -r linux-x64 --output ./BepInEx_GUI_linux_x64_${{github.ref_name}}
+      run: dotnet publish .\BepInEx.GUI\BepInEx.GUI.csproj -c Release -p:PublishSingleFile=true --sc -r linux-x64 --output ./BepInEx_GUI_linux_x64_${{github.ref_name}}
 
     - name: Zip Linux x64 Release
       uses: papeloto/action-zip@v1
       with:
-        files: BepInEx_GUI_linux_x64_${{github.ref_name}}/
+        files: BepInEx_GUI_linux_x64_${{github.ref_name}}/ BepInEx_GUI_Patcher_${{github.ref_name}}/
         recursive: false
         dest: BepInEx_GUI_linux_x64_${{github.ref_name}}.zip
 
     - name: Publish macOS x64
-      run: dotnet publish -c Release --sc -r osx-x64 --output ./BepInEx_GUI_macOS_x64_${{github.ref_name}}
+      run: dotnet publish .\BepInEx.GUI\BepInEx.GUI.csproj -c Release -p:PublishSingleFile=true --sc -r osx-x64 --output ./BepInEx_GUI_macOS_x64_${{github.ref_name}}
 
     - name: Zip macOS x64 Release
       uses: papeloto/action-zip@v1
       with:
-        files: BepInEx_GUI_macOS_x64_${{github.ref_name}}/
+        files: BepInEx_GUI_macOS_x64_${{github.ref_name}}/ BepInEx_GUI_Patcher_${{github.ref_name}}/
         recursive: false
         dest: BepInEx_GUI_macOS_x64_${{github.ref_name}}.zip
 
