@@ -1,4 +1,5 @@
 using BepInEx.Configuration;
+using BepInEx.GUI.Config;
 using BepInEx.Logging;
 using Mono.Cecil;
 using MonoMod.Utils;
@@ -24,15 +25,22 @@ namespace BepInEx.GUI.Patcher
         {
             LogSource = Logger.CreateLogSource("BepInEx.GUI.Patcher");
 
+            MainConfig.Init(Path.Combine(Paths.ConfigPath, MainConfig.FileName));
+
             var consoleConfig = (ConfigEntry<bool>)typeof(BepInPlugin).Assembly.GetType("BepInEx.ConsoleManager", true).GetField("ConfigConsoleEnabled", BindingFlags.Static | BindingFlags.Public).GetValue(null);
             if (consoleConfig.Value)
             {
                 LogSource.LogMessage("Console is enabled, not using BepInEx.GUI");
                 LogSource.Dispose();
             }
-            else
+            else if (MainConfig.EnableBepInExGUIConfig.Value)
             {
                 FindAndLaunchGui();
+            }
+            else
+            {
+                LogSource.LogMessage("BepInEx.GUI is disabled in the config, aborting launch.");
+                LogSource.Dispose();
             }
         }
 
@@ -84,9 +92,9 @@ namespace BepInEx.GUI.Patcher
                     (isWindows && fileName == $"{GuiFileName}.exe" && filePathLower.Contains("86")) ||
                     (isWindows64 && fileName == $"{GuiFileName}.exe" && filePathLower.Contains("64")) ||
 
-                    (isLinux64 && fileName == GuiFileName && filePathLower.Contains("linux64")) ||
+                    (isLinux64 && fileName == GuiFileName && filePathLower.Contains("linux_x64")) ||
 
-                    (isMacOs64 && fileName == GuiFileName && filePathLower.Contains("macos64"))
+                    (isMacOs64 && fileName == GuiFileName && filePathLower.Contains("macos_x64"))
                     )
                 {
                     return filePath;

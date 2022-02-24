@@ -63,6 +63,10 @@ namespace BepInEx.GUI.Config
         public const string CloseWindowWhenGameClosesConfigDescription = "Close the graphic user interface window when the game closes";
         public static ConfigEntry<bool> CloseWindowWhenGameClosesConfig { get; private set; }
 
+        public const string EnableBepInExGUIConfigKey = "Enable BepInEx GUI";
+        public const string EnableBepInExGUIConfigDescription = "Enable the custom BepInEx GUI";
+        public static ConfigEntry<bool> EnableBepInExGUIConfig { get; private set; }
+
         public static void Init(string configFilePath)
         {
             File = new ConfigFile(configFilePath, true);
@@ -72,6 +76,8 @@ namespace BepInEx.GUI.Config
             CloseWindowWhenGameLoadedConfig = File.Bind("Settings", CloseWindowWhenGameLoadedConfigKey, false, CloseWindowWhenGameLoadedConfigDescription);
 
             CloseWindowWhenGameClosesConfig = File.Bind("Settings", CloseWindowWhenGameClosesConfigKey, true, CloseWindowWhenGameClosesConfigDescription);
+
+            EnableBepInExGUIConfig = File.Bind("Settings", EnableBepInExGUIConfigKey, true, EnableBepInExGUIConfigDescription);
         }
     }
 

@@ -22,8 +22,27 @@
 				<ColumnDefinition Width="0.25*" />
 			</Grid.ColumnDefinitions>
 
-			<Label Grid.Column="0" Content="Text Filter" FontSize="22" Target="{Binding ElementName=TextBoxTextFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-			
+			<Grid Grid.Column="0" Margin="0, 0, 0, 20">
+
+				<Grid.RowDefinitions>
+					<RowDefinition Height="0.50*" />
+					<RowDefinition Height="0.50*" />
+				</Grid.RowDefinitions>
+
+				<Label Grid.Row="0" Content="Text Filter" FontSize="22" Target="{Binding ElementName=TextBoxTextFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+
+				<StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+					<ComboBox Items="{Binding GeneralViewModel.Mods}" SelectedItem="{Binding ConsoleViewModel.SelectedModFilter}" VerticalContentAlignment="Center" HorizontalContentAlignment="Center">
+						<ComboBox.ItemTemplate>
+							<DataTemplate>
+								<TextBlock Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+							</DataTemplate>
+						</ComboBox.ItemTemplate>
+					</ComboBox>
+				</StackPanel>
+
+			</Grid>
+
 			<TextBox Grid.Column="1" Name="TextBoxTextFilter" Text="{Binding ConsoleViewModel.TextFilter, Mode=TwoWay}" Margin="0, 20, 0, 20"/>
 
 			<StackPanel Grid.Column="2" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -48,8 +67,8 @@
 				<ItemsRepeater.ItemTemplate>
 					<DataTemplate>
 						<StackPanel>
-							<Border Background="{Binding Color}" CornerRadius="4" Padding="0">
-								<TextBox IsReadOnly="True" Text="{Binding Text}" TextWrapping="Wrap" DoubleTapped="OnLogEntryDoubleClick" MaxHeight="40" ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
+							<Border Background="{Binding BackgroundColor}" CornerRadius="4" Padding="0">
+								<TextBox IsReadOnly="True" Text="{Binding Text}" Foreground="{Binding ForegroundColor}" TextWrapping="Wrap" DoubleTapped="OnLogEntryDoubleClick" MaxHeight="40" ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
 							</Border>
 						</StackPanel>
 					</DataTemplate>
