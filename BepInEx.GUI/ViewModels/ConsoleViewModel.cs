@@ -13,12 +13,14 @@ namespace BepInEx.GUI.ViewModels
         public class ColoredEntry
         {
             public string Text { get; set; }
-            public string Color { get; set; }
+            public string BackgroundColor { get; set; }
+            public string ForegroundColor { get; set; }
 
-            public ColoredEntry(string text, string color)
+            public ColoredEntry(string text, string backgroundColor, string foregroundColor)
             {
                 Text = text;
-                Color = color;
+                BackgroundColor = backgroundColor;
+                ForegroundColor = foregroundColor;
             }
         }
 
@@ -54,6 +56,8 @@ namespace BepInEx.GUI.ViewModels
             }
         }
 
+        private bool _justChangedSelectedMod;
+
         private string _textFilter = "";
         public string TextFilter
         {
@@ -62,6 +66,31 @@ namespace BepInEx.GUI.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _textFilter, value);
                 UpdateConsoleBox();
+
+                if (_justChangedSelectedMod)
+                {
+                    _justChangedSelectedMod = false;
+                }
+                else
+                {
+                    SelectedModFilter = null;
+                }
+            }
+        }
+
+        private Mod? _selectedModFilter;
+        public Mod? SelectedModFilter
+        {
+            get { return _selectedModFilter; }
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _selectedModFilter, value);
+
+                if (value != null)
+                {
+                    _justChangedSelectedMod = true;
+                    TextFilter = _selectedModFilter!.Name;
+                }
             }
         }
 
@@ -132,24 +161,24 @@ namespace BepInEx.GUI.ViewModels
                 {
                     var logEntryString = logEntry.ToString();
 
-                    string color = logEntry.LevelCode switch
+                    var (backgroundColor, foregroundColor) = logEntry.LevelCode switch
                     {
-                        Logging.LogLevel.Fatal => "Red",
-                        Logging.LogLevel.Error => "Red",
-                        Logging.LogLevel.Warning => "YellowGreen",
-                        _ => "Transparent",
+                        Logging.LogLevel.Fatal => ("Transparent", "Red"),
+                        Logging.LogLevel.Error => ("Transparent", "Red"),
+                        Logging.LogLevel.Warning => ("Transparent", "Yellow"),
+                        _ => ("Transparent", "White"),
                     };
 
                     if (TextFilter.Length > 0)
                     {
                         if (logEntryString.ToLowerInvariant().Contains(TextFilter.ToLowerInvariant()))
                         {
-                            consoleText.Add(new ColoredEntry(logEntryString, color));
+                            consoleText.Add(new ColoredEntry(logEntryString, backgroundColor, foregroundColor));
                         }
                     }
                     else
                     {
-                        consoleText.Add(new ColoredEntry(logEntryString, color));
+                        consoleText.Add(new ColoredEntry(logEntryString, backgroundColor, foregroundColor));
                     }
                 }
             }
