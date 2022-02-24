@@ -11,6 +11,7 @@
 			<RowDefinition Height="*" />
 			<RowDefinition Height="*" />
 			<RowDefinition Height="*" />
+			<RowDefinition Height="*" />
 		</Grid.RowDefinitions>
 
 		<Grid Grid.Row="0">
@@ -43,7 +44,7 @@
 				Name="StackPanel2"
 				Orientation="Horizontal">
 				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel2}">
-					<CheckBox Content="Close this window when game is loaded" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameLoaded, Mode=TwoWay}" />
+					<CheckBox Content="Close this window when the game is loaded" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameLoaded, Mode=TwoWay}" />
 				</Viewbox>
 			</StackPanel>
 
@@ -62,6 +63,24 @@
 				Orientation="Horizontal">
 				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel3}">
 					<CheckBox Content="Close this window when the game closes" IsChecked="{Binding SettingsViewModel.CloseWindowWhenGameCloses, Mode=TwoWay}" />
+				</Viewbox>
+			</StackPanel>
+
+		</Grid>
+
+		<Grid Grid.Row="3">
+
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" />
+			</Grid.ColumnDefinitions>
+
+			<StackPanel
+				Grid.Column="0"
+				Height="80"
+				Name="StackPanel4"
+				Orientation="Horizontal">
+				<Viewbox Height="{Binding Path=ActualHeight, ElementName=StackPanel4}">
+					<CheckBox Content="Show this window when the game starts" IsChecked="{Binding SettingsViewModel.EnableBepInExGUI, Mode=TwoWay}" />
 				</Viewbox>
 			</StackPanel>
 

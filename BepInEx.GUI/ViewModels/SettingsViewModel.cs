@@ -43,6 +43,17 @@ namespace BepInEx.GUI.ViewModels
             }
         }
 
+        private bool _enableBepInExGUI;
+        public bool EnableBepInExGUI
+        {
+            get { return _enableBepInExGUI; }
+            set
+            {
+                MainConfig.EnableBepInExGUIConfig.Value = this.RaiseAndSetIfChanged(ref _enableBepInExGUI, value);
+                MainConfig.File.Save();
+            }
+        }
+
         public CancellationTokenSource CancellationTokenSource { get; private set; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -64,6 +75,8 @@ namespace BepInEx.GUI.ViewModels
             CloseWindowWhenGameLoaded = MainConfig.CloseWindowWhenGameLoadedConfig.Value;
 
             CloseWindowWhenGameCloses = MainConfig.CloseWindowWhenGameClosesConfig.Value;
+
+            EnableBepInExGUI = MainConfig.EnableBepInExGUIConfig.Value;
         }
 
         private void InitBackgroundTask()
