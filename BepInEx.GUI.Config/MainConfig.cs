@@ -15,45 +15,16 @@ namespace BepInEx.GUI.Config
         public const string EnableDeveloperToolsText = "Enable Developer Tools";
         public static ConfigEntry<bool> EnableDeveloperToolsConfig { get; private set; }
 
+        public static string BepinexGuiAppDataFolderPath { get; private set; }
+        public static string BepinexGuiWindowSizePosFilePath { get; private set; }
+
         /// <summary>
         /// This is done through LocalApplicationData because
         /// the BepInEx.GUI cfg file may be copied across different users 
         /// by r2modman profile sharing feature
         /// thus they may never end up seeing the one time only disclaimer
         /// </summary>
-        public static bool ShowOneTimeOnlyDisclaimerConfig
-        {
-            get
-            {
-                try
-                {
-                    var localAppDataFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                    if (string.IsNullOrWhiteSpace(localAppDataFolderPath))
-                    {
-                        return false;
-                    }
-
-                    var bepinexGuiAppDataFolderPath = Path.Combine(localAppDataFolderPath, "BepInEx.GUI");
-
-                    var alreadyShownDisclaimer = Directory.Exists(bepinexGuiAppDataFolderPath);
-                    if (alreadyShownDisclaimer)
-                    {
-                        return false;
-
-                    }
-                    else
-                    {
-                        Directory.CreateDirectory(bepinexGuiAppDataFolderPath);
-                        return true;
-                    }
-                }
-                catch (Exception)
-                {
-                }
-
-                return false;
-            }
-        }
+        public static bool ShowOneTimeOnlyDisclaimerConfig { get; private set; }
 
         public const string CloseWindowWhenGameLoadedConfigKey = "Close Window When Game Loaded";
         public const string CloseWindowWhenGameLoadedConfigDescription = "Close the graphic user interface window when the game is loaded";
@@ -78,6 +49,40 @@ namespace BepInEx.GUI.Config
             CloseWindowWhenGameClosesConfig = File.Bind("Settings", CloseWindowWhenGameClosesConfigKey, true, CloseWindowWhenGameClosesConfigDescription);
 
             EnableBepInExGUIConfig = File.Bind("Settings", EnableBepInExGUIConfigKey, true, EnableBepInExGUIConfigDescription);
+
+            InitAppDataFolder();
+        }
+
+        private static void InitAppDataFolder()
+        {
+            try
+            {
+                var localAppDataFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                if (string.IsNullOrWhiteSpace(localAppDataFolderPath))
+                {
+                    return;
+                }
+
+                BepinexGuiAppDataFolderPath = Path.Combine(localAppDataFolderPath, "BepInEx.GUI");
+
+                var alreadyShownDisclaimer = Directory.Exists(BepinexGuiAppDataFolderPath);
+                if (alreadyShownDisclaimer)
+                {
+                    ShowOneTimeOnlyDisclaimerConfig = false;
+
+                }
+                else
+                {
+                    Directory.CreateDirectory(BepinexGuiAppDataFolderPath);
+                    ShowOneTimeOnlyDisclaimerConfig = true;
+                }
+
+                BepinexGuiWindowSizePosFilePath = Path.Combine(BepinexGuiAppDataFolderPath, "MainWindowPositionAndSize.json");
+            }
+            catch (Exception)
+            {
+
+            }
         }
     }
 

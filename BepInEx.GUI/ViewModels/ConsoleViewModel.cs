@@ -4,7 +4,6 @@ using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using WebSocketSharp;
 
 namespace BepInEx.GUI.ViewModels
 {
@@ -24,7 +23,7 @@ namespace BepInEx.GUI.ViewModels
             }
         }
 
-        public WebSocket WebSocket { get; }
+        public LogSocketClient LogSocketClient { get; }
 
         public TargetInfo TargetInfo { get; }
 
@@ -129,26 +128,23 @@ namespace BepInEx.GUI.ViewModels
             }
         }
 
-        public ConsoleViewModel(WebSocket webSocket, TargetInfo targetInfo, PlatformInfo platformInfo)
+        public ConsoleViewModel(LogSocketClient socketClient, TargetInfo targetInfo, PlatformInfo platformInfo)
         {
-            WebSocket = webSocket;
-            WebSocket.OnMessage += AddLogToConsole;
+            LogEntries = new();
+
+            LogSocketClient = socketClient;
+            LogEntries.AddRange(LogSocketClient.PastLogs);
+            LogSocketClient.OnLogEntry += AddLogToConsole;
 
             TargetInfo = targetInfo;
 
             PlatformInfo = platformInfo;
-
-            LogEntries = new();
         }
 
-        private void AddLogToConsole(object? sender, MessageEventArgs e)
+        private void AddLogToConsole(LogEntry logEntry)
         {
-            var logEntry = LogEntry.Deserialize(e.RawData);
-            if (logEntry != null)
-            {
-                LogEntries.Add(logEntry);
-                UpdateConsoleBox();
-            }
+            LogEntries.Add(logEntry);
+            UpdateConsoleBox();
         }
 
         private void UpdateConsoleBox()
@@ -210,6 +206,11 @@ namespace BepInEx.GUI.ViewModels
 
                 _isTargetPaused = !_isTargetPaused;
             }
+        }
+
+        public void OnClickClearTextFilter()
+        {
+            TextFilter = "";
         }
     }
 }

@@ -19,6 +19,9 @@ namespace BepInEx.GUI.Patcher
 
         internal static ManualLogSource LogSource { get; private set; }
 
+        internal static LogSocketServer SocketServer { get; private set; }
+        internal static int SocketPort;
+
         internal static Process GuiProcess;
 
         public static void Initialize()
@@ -35,6 +38,10 @@ namespace BepInEx.GUI.Patcher
             }
             else if (MainConfig.EnableBepInExGUIConfig.Value)
             {
+                SocketPort = LogSocketServer.FindFreePort();
+                SocketServer = new LogSocketServer(SocketPort);
+                Logger.Listeners.Add(new AddLogsToQueue());
+
                 FindAndLaunchGui();
             }
             else
@@ -117,7 +124,8 @@ namespace BepInEx.GUI.Patcher
                 $"\"{Paths.BepInExRootPath}\" " +
                 $"\"{Paths.ConfigPath}\" " +
                 $"\"{Paths.GameRootPath}\" " +
-                $"\"{Process.GetCurrentProcess().Id}\"";
+                $"\"{Process.GetCurrentProcess().Id}\" " +
+                $"\"{SocketPort}\"";
 
             GuiProcess = Process.Start(processStartInfo);
             Logger.Listeners.Add(new CloseGuiOnChainloaderDone());

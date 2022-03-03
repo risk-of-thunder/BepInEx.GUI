@@ -8,7 +8,6 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
-using WebSocketSharp;
 
 namespace BepInEx.GUI.ViewModels
 {
@@ -34,7 +33,7 @@ namespace BepInEx.GUI.ViewModels
 
         public PlatformInfo PlatformInfo { get; }
 
-        public GeneralViewModel(PathsInfo pathsInfo, PlatformInfo platformInfo, WebSocket webSocket)
+        public GeneralViewModel(PathsInfo pathsInfo, PlatformInfo platformInfo, LogSocketClient logSocketClient)
         {
             PathsInfo = pathsInfo;
 
@@ -43,7 +42,11 @@ namespace BepInEx.GUI.ViewModels
             LoadedModCountText = "No plugins loaded.";
 
             Mods = new ObservableCollection<Mod>();
-            webSocket.OnMessage += AddLoadedModToList;
+            foreach (var log in logSocketClient.PastLogs)
+            {
+                AddLoadedModToList(log);
+            }
+            logSocketClient.OnLogEntry += AddLoadedModToList;
 
             PlatformInfo = platformInfo;
 
@@ -54,18 +57,12 @@ namespace BepInEx.GUI.ViewModels
             HttpClient = new HttpClient(handler);
         }
 
-        private void AddLoadedModToList(object? sender, MessageEventArgs e)
+        private void AddLoadedModToList(LogEntry logEntry)
         {
             const string LoadingModLog = "Loading [";
 
-            var logEntry = LogEntry.Deserialize(e.RawData);
-            if (logEntry == null)
-            {
-                return;
-            }
-
             var logEntryText = logEntry.Data;
-            if (logEntryText.Contains(LoadingModLog) && logEntry.Source == "BepInEx")
+            if (logEntry.Source == "BepInEx" && logEntryText.Contains(LoadingModLog))
             {
                 var modInfoArray = logEntryText.Split('[')[1].Split(' ');
                 var modName = modInfoArray[0];
