@@ -1,18 +1,22 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using BepInEx.GUI.Config;
 using BepInEx.GUI.Models;
 using BepInEx.GUI.ViewModels;
 using BepInEx.GUI.Views;
 using System;
-using WebSocketSharp;
+using System.IO;
+using System.Text.Json;
 
 namespace BepInEx.GUI
 {
     public class App : Application
     {
-        private WebSocket? _webSocket;
+        private LogSocketClient? _socketClient;
+        private readonly WindowPosAndSize _windowPosAndSize = new();
 
         public override void Initialize()
         {
@@ -33,20 +37,25 @@ namespace BepInEx.GUI
                     var pathsInfo = new PathsInfo(args);
                     var targetInfo = new TargetInfo(args);
 
-                    _webSocket = new WebSocket("ws://localhost:5892/Log");
-                    _webSocket.Connect();
+                    _socketClient = new LogSocketClient(args, pathsInfo);
 
                     MainConfig.Init(pathsInfo.ConfigFilePath);
 
                     desktop.MainWindow = new MainWindow
                     {
-                        DataContext = new MainWindowViewModel(_webSocket, pathsInfo, platformInfo, targetInfo),
+                        DataContext = new MainWindowViewModel(_socketClient, pathsInfo, platformInfo, targetInfo),
                     };
 
-                    // Needed or the target closes
+                    desktop.MainWindow.PlatformImpl.PositionChanged += OnPositionChanged;
+                    desktop.MainWindow.PlatformImpl.Resized += OnSizeChanged;
+
+                    SetWindowPositionAndSizeFromFile(desktop.MainWindow);
+
                     desktop.MainWindow.Closing += (sender, e) =>
                     {
-                        _webSocket.Close();
+                        _socketClient.Dispose();
+
+                        SaveWindowPositionAndSize();
                     };
                 };       
             }
@@ -54,11 +63,63 @@ namespace BepInEx.GUI
             base.OnFrameworkInitializationCompleted();
         }
 
+        private void OnSizeChanged(Size arg1, PlatformResizeReason arg2)
+        {
+            _windowPosAndSize.ClientSizeWidth = arg1.Width;
+            _windowPosAndSize.ClientSizeHeight = arg1.Height;
+        }
+
+        private void OnPositionChanged(PixelPoint obj)
+        {
+            _windowPosAndSize.PositionX = obj.X;
+            _windowPosAndSize.PositionY = obj.Y;
+        }
+
+        public class WindowPosAndSize
+        {
+            public int PositionX { get; set; }
+            public int PositionY { get; set; }
+
+            public double ClientSizeWidth { get; set; }
+            public double ClientSizeHeight { get; set; }
+        }
+
+        private static void SetWindowPositionAndSizeFromFile(Window mainWindow)
+        {
+            try
+            {
+                if (File.Exists(MainConfig.BepinexGuiWindowSizePosFilePath))
+                {
+                    var w = JsonSerializer.Deserialize<WindowPosAndSize>(File.ReadAllText(MainConfig.BepinexGuiWindowSizePosFilePath))!;
+                    mainWindow.PlatformImpl.Move(new(w.PositionX, w.PositionY));
+                    mainWindow.PlatformImpl.Resize(new(w.ClientSizeWidth, w.ClientSizeHeight));
+                }
+            }
+            catch (Exception e)
+            {
+                // todo save log
+
+                Debug.Message(e.ToString());
+            }
+        }
+
+        private void SaveWindowPositionAndSize()
+        {
+            try
+            {
+                File.WriteAllText(MainConfig.BepinexGuiWindowSizePosFilePath, JsonSerializer.Serialize(_windowPosAndSize));
+            }
+            catch (Exception e)
+            {
+                // todo save log
+
+                Debug.Message(e.ToString());
+            }
+        }
+
         private void ShowUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            // Avalonia could possibly not be able to recover at all from this exception, thus closing the app
-            // the websocket if left open at this point will crash the target
-            _webSocket!.Close();
+            _socketClient?.Dispose();
 
             var ex = (Exception)e.ExceptionObject;
             Debug.Message(ex.ToString());
@@ -78,6 +139,7 @@ namespace BepInEx.GUI
                     string.Empty,
                     string.Empty,
                     string.Empty,
+                    "27090"
                 };
             }
 
