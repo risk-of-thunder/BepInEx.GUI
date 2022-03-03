@@ -1,5 +1,4 @@
 using BepInEx.GUI.Models;
-using WebSocketSharp;
 
 namespace BepInEx.GUI.ViewModels
 {
@@ -15,15 +14,15 @@ namespace BepInEx.GUI.ViewModels
 
         public SettingsViewModel SettingsViewModel { get; }
 
-        public MainWindowViewModel(WebSocket webSocket, PathsInfo pathsInfo, PlatformInfo platformInfo, TargetInfo targetInfo)
+        public MainWindowViewModel(LogSocketClient socketClient, PathsInfo pathsInfo, PlatformInfo platformInfo, TargetInfo targetInfo)
         {
             PathsInfo = pathsInfo;
 
             WindowInfo = new WindowInfo(PathsInfo);
 
-            GeneralViewModel = new GeneralViewModel(PathsInfo, platformInfo, webSocket);
+            GeneralViewModel = new GeneralViewModel(PathsInfo, platformInfo, socketClient);
 
-            ConsoleViewModel = new ConsoleViewModel(webSocket, targetInfo, platformInfo);
+            ConsoleViewModel = new ConsoleViewModel(socketClient, targetInfo, platformInfo);
 
             SettingsViewModel = new SettingsViewModel(targetInfo);
         }

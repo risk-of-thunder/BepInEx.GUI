@@ -9,6 +9,12 @@
     <PackageReference Include="BepInEx.Core" Version="5.4.19" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="protobuf-net">
+      <HintPath>..\libs\protobuf-net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
   <Import Project="..\BepInEx.GUI.Config\BepInEx.GUI.Config.projitems" Label="Shared" />
   
 </Project>
