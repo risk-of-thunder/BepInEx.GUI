@@ -29,7 +29,20 @@
 					<RowDefinition Height="0.50*" />
 				</Grid.RowDefinitions>
 
-				<Label Grid.Row="0" Content="Text Filter" FontSize="22" Target="{Binding ElementName=TextBoxTextFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+				<StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+					<Label Content="Text Filter" FontSize="22" Target="{Binding ElementName=TextBoxTextFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+
+					<StackPanel
+					Height="30"
+					Name="ClearTextFilterButtonStackPanel"
+					HorizontalAlignment="Center"
+					Orientation="Horizontal">
+						<Viewbox Height="{Binding Path=ActualHeight, ElementName=ClearTextFilterButtonStackPanel}">
+							<Button Content="Clear" Command="{Binding ConsoleViewModel.OnClickClearTextFilter}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Viewbox>
+					</StackPanel>
+
+				</StackPanel>
 
 				<StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
 					<ComboBox Items="{Binding GeneralViewModel.Mods}" SelectedItem="{Binding ConsoleViewModel.SelectedModFilter}" VerticalContentAlignment="Center" HorizontalContentAlignment="Center">
