@@ -39,7 +39,7 @@ namespace BepInEx.GUI
 
                     _socketClient = new LogSocketClient(args, pathsInfo);
 
-                    MainConfig.Init(pathsInfo.ConfigFilePath);
+                    MainConfig.Init(pathsInfo.ConfigFilePath, true);
 
                     desktop.MainWindow = new MainWindow
                     {
