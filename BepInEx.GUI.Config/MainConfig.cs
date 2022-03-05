@@ -38,7 +38,7 @@ namespace BepInEx.GUI.Config
         public const string EnableBepInExGUIConfigDescription = "Enable the custom BepInEx GUI";
         public static ConfigEntry<bool> EnableBepInExGUIConfig { get; private set; }
 
-        public static void Init(string configFilePath)
+        public static void Init(string configFilePath, bool isGUI)
         {
             File = new ConfigFile(configFilePath, true);
 
@@ -50,7 +50,8 @@ namespace BepInEx.GUI.Config
 
             EnableBepInExGUIConfig = File.Bind("Settings", EnableBepInExGUIConfigKey, true, EnableBepInExGUIConfigDescription);
 
-            InitAppDataFolder();
+            if (isGUI)
+                InitAppDataFolder();
         }
 
         private static void InitAppDataFolder()

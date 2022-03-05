@@ -28,7 +28,7 @@ namespace BepInEx.GUI.Patcher
         {
             LogSource = Logger.CreateLogSource("BepInEx.GUI.Patcher");
 
-            MainConfig.Init(Path.Combine(Paths.ConfigPath, MainConfig.FileName));
+            MainConfig.Init(Path.Combine(Paths.ConfigPath, MainConfig.FileName), false);
 
             var consoleConfig = (ConfigEntry<bool>)typeof(BepInPlugin).Assembly.GetType("BepInEx.ConsoleManager", true).GetField("ConfigConsoleEnabled", BindingFlags.Static | BindingFlags.Public).GetValue(null);
             if (consoleConfig.Value)
