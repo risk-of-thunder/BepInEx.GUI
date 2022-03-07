@@ -1,3 +1,5 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using BepInEx.GUI.Config;
 using BepInEx.GUI.Models;
 using ReactiveUI;
@@ -102,7 +104,7 @@ namespace BepInEx.GUI.ViewModels
 
                 if (MainConfig.CloseWindowWhenGameClosesConfig.Value && TargetInfo.Process.HasExited)
                 {
-                    System.Environment.Exit(0);
+                    ((IClassicDesktopStyleApplicationLifetime)Application.Current.ApplicationLifetime).Shutdown();
                 }
 
                 await Task.Delay(500);

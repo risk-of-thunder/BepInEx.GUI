@@ -51,16 +51,18 @@ namespace BepInEx.GUI
 
                     SetWindowPositionAndSizeFromFile(desktop.MainWindow);
 
-                    desktop.MainWindow.Closing += (sender, e) =>
-                    {
-                        _socketClient.Dispose();
-
-                        SaveWindowPositionAndSize();
-                    };
+                    desktop.Exit += OnExit;
                 };       
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
+        {
+            _socketClient?.Dispose();
+
+            SaveWindowPositionAndSize();
         }
 
         private void OnSizeChanged(Size arg1, PlatformResizeReason arg2)
