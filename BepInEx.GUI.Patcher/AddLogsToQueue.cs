@@ -11,8 +11,14 @@ namespace BepInEx.GUI.Patcher
 
         public void LogEvent(object sender, LogEventArgs e)
         {
-            var l = new LogEntry(e.Source.SourceName, e.Level.ToString(), e.Level, e.Data.ToString());
-            Patcher.SocketServer.LogQueue.Enqueue(l);
+            if (Patcher.SocketServer.LogQueue != null)
+            {
+                lock (Patcher.SocketServer.LogQueue)
+                {
+                    var l = new LogEntry(e.Source.SourceName, e.Level.ToString(), e.Level, e.Data.ToString());
+                    Patcher.SocketServer.LogQueue.Enqueue(l);
+                }
+            }
         }
     }
 }
