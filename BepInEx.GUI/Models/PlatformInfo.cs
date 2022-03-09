@@ -12,6 +12,7 @@ namespace BepInEx.GUI.Models
         
         public PlatformInfo(string[] args)
         {
+            const Platform windowsPlatform = Platform.Windows;
             const Platform windowsX64Platform = Platform.Windows | Platform.Bits64;
             const Platform linuxX64Platform = Platform.Linux | Platform.Bits64;
             const Platform macOsX64Platform = Platform.MacOS | Platform.Bits64;
@@ -19,8 +20,12 @@ namespace BepInEx.GUI.Models
             int.TryParse(args[0], out var current);
             Current = (Platform)current;
 
-            IsWindows = (Current & windowsX64Platform) == Current;
+            IsWindows = (Current & windowsPlatform) == Current;
+            IsWindows |= (Current & windowsX64Platform) == Current;
+
+            // linux x86 https://github.com/dotnet/runtime/issues/31180
             IsLinux = (Current & linuxX64Platform) == Current;
+
             IsMacOs = (Current & macOsX64Platform) == Current;
         }
     }
