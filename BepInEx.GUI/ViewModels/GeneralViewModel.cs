@@ -42,6 +42,7 @@ namespace BepInEx.GUI.ViewModels
             LoadedModCountText = "No plugins loaded.";
 
             Mods = new ObservableCollection<Mod>();
+
             foreach (var log in logSocketClient.PastLogs)
             {
                 AddLoadedModToList(log);
@@ -64,13 +65,19 @@ namespace BepInEx.GUI.ViewModels
             var logEntryText = logEntry.Data;
             if (logEntry.Source == "BepInEx" && logEntryText.Contains(LoadingModLog))
             {
-                var modInfoArray = logEntryText.Split('[')[1].Split(' ');
-                var modName = modInfoArray[0];
-                var modVersion = modInfoArray[1].Remove(modInfoArray[1].Length - 1, 1);
+                var modInfoText = logEntryText.Split('[')[1];
 
-                Mods.Add(new Mod(modName, modVersion));
+                var modVersionStartIndex = modInfoText.LastIndexOf(' ');
 
-                LoadedModCountText = $"Loaded Mods: {Mods.Count}";
+                var modName = modInfoText.Substring(0, modVersionStartIndex);
+                var modVersion = modInfoText.Substring(modVersionStartIndex + 1, modInfoText.Length - 2 - modVersionStartIndex);
+
+                lock (Mods)
+                {
+                    Mods.Add(new Mod(modName, modVersion));
+
+                    LoadedModCountText = $"Loaded Mods: {Mods.Count}";
+                }
             }
         }
 

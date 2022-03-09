@@ -74,11 +74,17 @@ namespace BepInEx.GUI.Patcher
                         {
                             if (_client.Connected)
                             {
-                                while (LogQueue.Count > 0)
+                                if (LogQueue != null)
                                 {
-                                    LogEntry log = LogQueue.Dequeue();
+                                    lock (LogQueue)
+                                    {
+                                        while (LogQueue.Count > 0)
+                                        {
+                                            LogEntry log = LogQueue.Dequeue();
 
-                                    Serializer.SerializeWithLengthPrefix(_stream, log, PrefixStyle.Base128);
+                                            Serializer.SerializeWithLengthPrefix(_stream, log, PrefixStyle.Base128);
+                                        }
+                                    }
                                 }
                             }
                             else
@@ -117,6 +123,11 @@ namespace BepInEx.GUI.Patcher
                             _stream?.Dispose();
                             _client?.Dispose();
                         }
+                    }
+
+                    lock (LogQueue)
+                    {
+                        LogQueue = null;
                     }
                 }
 
