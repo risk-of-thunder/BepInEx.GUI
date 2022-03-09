@@ -133,7 +133,9 @@ namespace BepInEx.GUI.ViewModels
             LogEntries = new();
 
             LogSocketClient = socketClient;
+
             LogEntries.AddRange(LogSocketClient.PastLogs);
+
             LogSocketClient.OnLogEntry += AddLogToConsole;
 
             TargetInfo = targetInfo;
@@ -143,7 +145,11 @@ namespace BepInEx.GUI.ViewModels
 
         private void AddLogToConsole(LogEntry logEntry)
         {
-            LogEntries.Add(logEntry);
+            lock (LogEntries)
+            {
+                LogEntries.Add(logEntry);
+            }
+
             UpdateConsoleBox();
         }
 
@@ -151,35 +157,41 @@ namespace BepInEx.GUI.ViewModels
         {
             var consoleText = new ObservableCollection<ColoredEntry>();
 
-            foreach (var logEntry in LogEntries)
+            lock (LogEntries)
             {
-                if (logEntry.LevelCode <= _allowedLogLevel)
+                foreach (var logEntry in LogEntries)
                 {
-                    var logEntryString = logEntry.ToString();
-
-                    var (backgroundColor, foregroundColor) = logEntry.LevelCode switch
+                    if (logEntry.LevelCode <= _allowedLogLevel)
                     {
-                        Logging.LogLevel.Fatal => ("Transparent", "Red"),
-                        Logging.LogLevel.Error => ("Transparent", "Red"),
-                        Logging.LogLevel.Warning => ("Transparent", "Yellow"),
-                        _ => ("Transparent", "White"),
-                    };
+                        var logEntryString = logEntry.ToString();
 
-                    if (TextFilter.Length > 0)
-                    {
-                        if (logEntryString.ToLowerInvariant().Contains(TextFilter.ToLowerInvariant()))
+                        var (backgroundColor, foregroundColor) = logEntry.LevelCode switch
+                        {
+                            Logging.LogLevel.Fatal => ("Transparent", "Red"),
+                            Logging.LogLevel.Error => ("Transparent", "Red"),
+                            Logging.LogLevel.Warning => ("Transparent", "Yellow"),
+                            _ => ("Transparent", "White"),
+                        };
+
+                        if (TextFilter.Length > 0)
+                        {
+                            if (logEntryString.ToLowerInvariant().Contains(TextFilter.ToLowerInvariant()))
+                            {
+                                consoleText.Add(new ColoredEntry(logEntryString, backgroundColor, foregroundColor));
+                            }
+                        }
+                        else
                         {
                             consoleText.Add(new ColoredEntry(logEntryString, backgroundColor, foregroundColor));
                         }
                     }
-                    else
-                    {
-                        consoleText.Add(new ColoredEntry(logEntryString, backgroundColor, foregroundColor));
-                    }
                 }
             }
 
-            ConsoleText = consoleText;
+            lock (ConsoleText)
+            {
+                ConsoleText = consoleText;
+            }
         }
 
         private bool _isTargetPaused;
