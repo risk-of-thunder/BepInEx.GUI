@@ -73,8 +73,17 @@ namespace BepInEx.GUI
 
         private void OnPositionChanged(PixelPoint obj)
         {
-            _windowPosAndSize.PositionX = obj.X;
-            _windowPosAndSize.PositionY = obj.Y;
+            if (!IsMinimizedOnWindows(obj.X, obj.Y))
+            {
+                _windowPosAndSize.PositionX = obj.X;
+                _windowPosAndSize.PositionY = obj.Y;
+            }
+        }
+
+        // https://devblogs.microsoft.com/oldnewthing/20041028-00/?p=37453
+        private static bool IsMinimizedOnWindows(int x, int y)
+        {
+            return x <= -30000 && y <= -30000;
         }
 
         public class WindowPosAndSize
@@ -93,8 +102,12 @@ namespace BepInEx.GUI
                 if (File.Exists(MainConfig.BepinexGuiWindowSizePosFilePath))
                 {
                     var w = JsonSerializer.Deserialize<WindowPosAndSize>(File.ReadAllText(MainConfig.BepinexGuiWindowSizePosFilePath))!;
-                    mainWindow.PlatformImpl.Move(new(w.PositionX, w.PositionY));
-                    mainWindow.PlatformImpl.Resize(new(w.ClientSizeWidth, w.ClientSizeHeight));
+
+                    if (!IsMinimizedOnWindows(w.PositionX, w.PositionY))
+                    {
+                        mainWindow.PlatformImpl.Move(new(w.PositionX, w.PositionY));
+                        mainWindow.PlatformImpl.Resize(new(w.ClientSizeWidth, w.ClientSizeHeight));
+                    }
                 }
             }
             catch (Exception e)
