@@ -5,6 +5,8 @@ use std::io::{Cursor, Read};
 use std::mem::size_of;
 use std::net::TcpStream;
 
+use crate::bepinex_log::LogLevel;
+
 pub(crate) fn read_packet_length(tcp_stream: &mut TcpStream) -> Result<usize, std::io::Error> {
     const HEADER_SIZE: usize = size_of::<u32>();
 
@@ -14,6 +16,20 @@ pub(crate) fn read_packet_length(tcp_stream: &mut TcpStream) -> Result<usize, st
         Cursor::new(&mut received_bytes).read_u32::<NativeEndian>()? as usize;
 
     Ok(packet_length)
+}
+
+pub(crate) fn read_packet_log_level(
+    tcp_stream: &mut TcpStream,
+) -> Result<LogLevel, std::io::Error> {
+    unsafe {
+        let mut received_bytes = read_packet_internal(tcp_stream, size_of::<i32>())?;
+
+        let log_level: LogLevel = std::mem::transmute::<i32, LogLevel>(
+            Cursor::new(&mut received_bytes).read_i32::<NativeEndian>()?,
+        );
+
+        Ok(log_level)
+    }
 }
 
 pub(crate) fn read_packet(
