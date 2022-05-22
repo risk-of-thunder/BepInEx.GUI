@@ -25,4 +25,8 @@ impl Tab for GeneralTab {
     ) {
         ()
     }
+
+    fn require_dev_check(&self) -> bool {
+        false
+    }
 }

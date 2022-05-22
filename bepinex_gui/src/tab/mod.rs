@@ -15,4 +15,6 @@ pub trait Tab {
         ctx: &eframe::egui::Context,
         frame: &mut eframe::Frame,
     );
+
+    fn require_dev_check(&self) -> bool;
 }

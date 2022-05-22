@@ -10,18 +10,24 @@ use eframe::*;
 use eframe;
 
 use std::sync::mpsc::channel;
+use std::time::{Duration, SystemTime};
 use std::{cell::RefCell, sync::mpsc::Receiver};
 
 use std::rc::Rc;
 
 use tab::Tab;
 
+use crate::check_if_dev::QUESTION_ANSWERS_LENGTH;
 use crate::log_receiver_thread::LogReceiverThread;
-use crate::settings;
-use crate::{bepinex_gui_config::BepInExGUIConfig, bepinex_log::BepInExLog, check_if_dev, tab};
+use crate::{bepinex_gui_config::BepInExGUIConfig, bepinex_log::BepInExLog, tab};
+use crate::{check_if_dev, colors, settings};
 
 pub struct BepInExGUI {
     pub(crate) config: BepInExGUIConfig,
+    pub(crate) show_dev_check_window: bool,
+    pub(crate) dev_check_current_answer: Vec<String>,
+    pub(crate) dev_check_good_answer_count: usize,
+    pub(crate) time_when_disclaimer_showed_up: SystemTime,
     pub(crate) tabs: Vec<Box<dyn Tab>>,
     pub(crate) mods: Rc<RefCell<Option<Vec<String>>>>,
     pub(crate) logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
@@ -44,9 +50,94 @@ impl App for BepInExGUI {
 
         self.update_receive_logs_from_channel();
 
-        self.render_header(ctx, frame);
+        if self.config.first_time {
+            Window::new("One Time Only Disclaimer").min_width(ctx.available_rect().size().x).show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.label(RichText::new(
+r#"The console is now disabled by default.
+If you notice issues with a mod while playing, 
+head to the Modding Discord by clicking on the button below, 
+post the log file by copying it to clipboard through the button below, and wait for help.
+For mod developers that like the old conhost console, you can enable it back by opening the BepInEx/config/BepInEx.cfg and 
+setting to true the "Enables showing a console for log output." config option."#));
 
-        self.tabs[self.config.selected_tab_index].update(&mut self.config, ctx, frame);
+                    static mut FIRST_TIME_SHOW:bool = true;
+                    unsafe {
+                        if FIRST_TIME_SHOW {
+                            self.time_when_disclaimer_showed_up = SystemTime::now();
+                            FIRST_TIME_SHOW = false;
+                        }
+                    }
+
+                    if let Ok(_elapsed) = self.time_when_disclaimer_showed_up.elapsed() {
+                        let elapsed = _elapsed.as_secs() as i64;
+                        if 10 - elapsed >= 0 {
+                            ui.label((10 - elapsed).to_string());
+                        }
+                        else {
+                            if ui.button("Ok").clicked() {
+                                self.config.first_time = false;
+                            }
+                        }
+                    }
+                });
+            });
+        } else {
+            self.render_header(ctx, frame);
+
+            let tab = &mut self.tabs[self.config.selected_tab_index];
+
+            if tab.require_dev_check() && !self.config.is_dev {
+                self.show_dev_check_window = true;
+            } else {
+                self.show_dev_check_window = false;
+            }
+
+            if self.show_dev_check_window {
+                CentralPanel::default().show(ctx, |_| {
+                    Window::new("This tab requires a dev check to be used").show(ctx, |ui| {
+                        let questions_answers = &check_if_dev::QUESTIONS_ANSWERS.lock().unwrap();
+                        for i in 0..questions_answers.len() {
+                            let question_resp = ui.heading(questions_answers[i].0);
+                            ui.style_mut().visuals.extreme_bg_color = if self.config.dark_mode {
+                                colors::DARK_GRAY
+                            } else {
+                                colors::LIGHT_GRAY
+                            };
+                            ui.add_sized(
+                                question_resp.rect.size(),
+                                TextEdit::singleline(&mut self.dev_check_current_answer[i])
+                                    .text_color(if self.config.dark_mode {
+                                        Color32::WHITE
+                                    } else {
+                                        Color32::BLACK
+                                    })
+                                    .hint_text(
+                                        WidgetText::from("Type Answer Here")
+                                            .color(colors::FADED_LIGHT_GRAY),
+                                    ),
+                            );
+                        }
+
+                        if ui.button("Submit").clicked() {
+                            for i in 0..questions_answers.len() {
+                                if self.dev_check_current_answer[i].to_lowercase()
+                                    == questions_answers[i].1.to_lowercase()
+                                {
+                                    self.dev_check_good_answer_count += 1;
+                                    if self.dev_check_good_answer_count == *QUESTION_ANSWERS_LENGTH
+                                    {
+                                        self.config.is_dev = true;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+            } else {
+                tab.update(&mut self.config, ctx, frame);
+            }
+        }
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
@@ -58,6 +149,10 @@ impl BepInExGUI {
     pub fn new() -> Self {
         Self {
             config: Default::default(),
+            show_dev_check_window: false,
+            dev_check_current_answer: vec!["".to_string(); *QUESTION_ANSWERS_LENGTH],
+            dev_check_good_answer_count: 0,
+            time_when_disclaimer_showed_up: SystemTime::now(),
             tabs: vec![],
             mods: Default::default(),
             logs: Default::default(),
@@ -78,8 +173,6 @@ impl BepInExGUI {
         self.logs = Rc::from(RefCell::from(Some(vec![])));
 
         self.init_tabs();
-
-        let x = check_if_dev::give_random_dev_question_answer();
 
         self
     }
@@ -154,9 +247,10 @@ impl BepInExGUI {
             ui.separator();
             ui.add_space(10.);
 
-            self.tabs[self.config.selected_tab_index].update_top_panel(&mut self.config, ui);
-
-            ui.add_space(10.);
+            if !self.show_dev_check_window {
+                self.tabs[self.config.selected_tab_index].update_top_panel(&mut self.config, ui);
+                ui.add_space(10.);
+            }
         });
     }
 }

@@ -24,4 +24,8 @@ impl Tab for SettingsTab {
         frame: &mut eframe::Frame,
     ) {
     }
+
+    fn require_dev_check(&self) -> bool {
+        false
+    }
 }

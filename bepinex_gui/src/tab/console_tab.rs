@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, sync::mpsc::*};
+use std::{cell::RefCell, rc::Rc};
 
 use clipboard::*;
 use eframe::{egui::*, *};
@@ -45,9 +45,7 @@ impl ConsoleTab {
         CentralPanel::default().show(ctx, |ui| {
             if self.logs.borrow_mut().as_mut().unwrap().is_empty() {
                 ui.vertical_centered_justified(|ui| {
-                    let x = check_if_dev::give_random_dev_question_answer();
-                    let loading_text = x[0].0;
-                    // let loading_text = "Loading ⌛";
+                    let loading_text = "Loading ⌛";
                     let text_size = egui_utils::compute_text_size(ui, loading_text, true, false);
                     ui.add_space(ui.available_height() / 2. - text_size.y);
                     ui.heading(loading_text);
@@ -275,5 +273,9 @@ impl Tab for ConsoleTab {
         self.render_footer(ctx);
 
         self.render(gui_config, ctx);
+    }
+
+    fn require_dev_check(&self) -> bool {
+        true
     }
 }
