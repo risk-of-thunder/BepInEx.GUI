@@ -11,18 +11,18 @@ use crate::bepinex_log::LogLevel;
 use crate::packet_protocol;
 
 #[derive(Clone)]
-pub struct LogReceiver {
+pub struct LogReceiverThread {
     channel_sender: Sender<BepInExLog>,
 }
 
-impl LogReceiver {
-    pub fn new(channel_sender: Sender<BepInExLog>) -> LogReceiver {
-        LogReceiver {
+impl LogReceiverThread {
+    pub fn new(channel_sender: Sender<BepInExLog>) -> LogReceiverThread {
+        LogReceiverThread {
             channel_sender: channel_sender,
         }
     }
 
-    pub fn log_receiver_thread_loop(&self) {
+    pub fn start_thread_loop(&self) {
         let inst = self.clone();
         thread::spawn(move || -> io::Result<()> {
             loop {
