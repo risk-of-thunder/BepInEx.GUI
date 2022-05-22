@@ -1,4 +1,4 @@
-use crate::BepInExGUIConfig;
+use crate::bepinex_gui_config::BepInExGUIConfig;
 
 pub(crate) mod console_tab;
 pub(crate) mod general_tab;

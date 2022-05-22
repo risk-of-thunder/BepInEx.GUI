@@ -1,4 +1,4 @@
-use crate::BepInExGUIConfig;
+use crate::bepinex_gui_config::BepInExGUIConfig;
 
 use super::Tab;
 

@@ -4,8 +4,9 @@ use clipboard::*;
 use eframe::{egui::*, *};
 
 use crate::{
+    bepinex_gui_config::BepInExGUIConfig,
     bepinex_log::{self, BepInExLog, LogLevel},
-    check_if_dev, colors, egui_utils, BepInExGUIConfig,
+    check_if_dev, colors, egui_utils,
 };
 
 use super::Tab;
@@ -239,13 +240,7 @@ impl Tab for ConsoleTab {
                         } else {
                             Color32::BLACK
                         })
-                        .hint_text(WidgetText::from("Filter Text").color(
-                            if gui_config.dark_mode {
-                                colors::LIGHT_GRAY
-                            } else {
-                                colors::DARK_GRAY
-                            },
-                        )),
+                        .hint_text(WidgetText::from("Filter Text").color(colors::FADED_LIGHT_GRAY)),
                 );
 
                 // restore cursor so that we can center label easily
