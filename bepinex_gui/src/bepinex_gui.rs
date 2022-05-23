@@ -10,7 +10,7 @@ use eframe::*;
 use eframe;
 
 use std::sync::mpsc::channel;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use std::{cell::RefCell, sync::mpsc::Receiver};
 
 use std::rc::Rc;
@@ -26,7 +26,6 @@ pub struct BepInExGUI {
     pub(crate) config: BepInExGUIConfig,
     pub(crate) show_dev_check_window: bool,
     pub(crate) dev_check_current_answer: Vec<String>,
-    pub(crate) dev_check_good_answer_count: usize,
     pub(crate) time_when_disclaimer_showed_up: SystemTime,
     pub(crate) tabs: Vec<Box<dyn Tab>>,
     pub(crate) mods: Rc<RefCell<Option<Vec<String>>>>,
@@ -51,15 +50,17 @@ impl App for BepInExGUI {
         self.update_receive_logs_from_channel();
 
         if self.config.first_time {
-            Window::new("One Time Only Disclaimer").min_width(ctx.available_rect().size().x).show(ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.label(RichText::new(
+            Window::new("Disclaimer").min_width(ctx.available_rect().size().x).anchor(Align2::CENTER_CENTER, Vec2::ZERO).show(ctx, |ui| {
+                ui.vertical(|ui| {
+                    ui.add(
+                    Label::new(RichText::new(
 r#"The console is now disabled by default.
-If you notice issues with a mod while playing, 
-head to the Modding Discord by clicking on the button below, 
-post the log file by copying it to clipboard through the button below, and wait for help.
+If you notice issues with a mod while playing:
+- Head to the Modding Discord by clicking on the button below.
+- Post the log file by copying it to clipboard through the button below.
+- Wait for help.
 For mod developers that like the old conhost console, you can enable it back by opening the BepInEx/config/BepInEx.cfg and 
-setting to true the "Enables showing a console for log output." config option."#));
+setting to true the "Enables showing a console for log output." config option."#).font(FontId::proportional(20.0))).wrap(true));
 
                     static mut FIRST_TIME_SHOW:bool = true;
                     unsafe {
@@ -71,11 +72,11 @@ setting to true the "Enables showing a console for log output." config option."#
 
                     if let Ok(_elapsed) = self.time_when_disclaimer_showed_up.elapsed() {
                         let elapsed = _elapsed.as_secs() as i64;
-                        if 10 - elapsed >= 0 {
-                            ui.label((10 - elapsed).to_string());
+                        if 9 - elapsed >= 0 {
+                            ui.label(RichText::new((10 - elapsed).to_string()).font(FontId::proportional(20.0)));
                         }
                         else {
-                            if ui.button("Ok").clicked() {
+                            if ui.button(RichText::new("Ok").font(FontId::proportional(20.0))).clicked() {
                                 self.config.first_time = false;
                             }
                         }
@@ -95,44 +96,47 @@ setting to true the "Enables showing a console for log output." config option."#
 
             if self.show_dev_check_window {
                 CentralPanel::default().show(ctx, |_| {
-                    Window::new("This tab requires a dev check to be used").show(ctx, |ui| {
-                        let questions_answers = &check_if_dev::QUESTIONS_ANSWERS.lock().unwrap();
-                        for i in 0..questions_answers.len() {
-                            let question_resp = ui.heading(questions_answers[i].0);
-                            ui.style_mut().visuals.extreme_bg_color = if self.config.dark_mode {
-                                colors::DARK_GRAY
-                            } else {
-                                colors::LIGHT_GRAY
-                            };
-                            ui.add_sized(
-                                question_resp.rect.size(),
-                                TextEdit::singleline(&mut self.dev_check_current_answer[i])
-                                    .text_color(if self.config.dark_mode {
-                                        Color32::WHITE
-                                    } else {
-                                        Color32::BLACK
-                                    })
-                                    .hint_text(
-                                        WidgetText::from("Type Answer Here")
-                                            .color(colors::FADED_LIGHT_GRAY),
-                                    ),
-                            );
-                        }
-
-                        if ui.button("Submit").clicked() {
+                    Window::new("This tab requires a dev check to be used")
+                        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+                        .show(ctx, |ui| {
+                            let questions_answers =
+                                &check_if_dev::QUESTIONS_ANSWERS.lock().unwrap();
                             for i in 0..questions_answers.len() {
-                                if self.dev_check_current_answer[i].to_lowercase()
-                                    == questions_answers[i].1.to_lowercase()
+                                ui.heading(questions_answers[i].0);
+                                ui.style_mut().visuals.extreme_bg_color = if self.config.dark_mode {
+                                    colors::DARK_GRAY
+                                } else {
+                                    colors::LIGHT_GRAY
+                                };
+
+                                let answer_edit_line_size = Vec2::new(ui.available_width(), 20.);
+                                if ui
+                                    .add_sized(
+                                        answer_edit_line_size,
+                                        TextEdit::singleline(&mut self.dev_check_current_answer[i])
+                                            .text_color(if self.config.dark_mode {
+                                                Color32::WHITE
+                                            } else {
+                                                Color32::BLACK
+                                            })
+                                            .hint_text(
+                                                WidgetText::from("Type Answer Here")
+                                                    .color(colors::FADED_LIGHT_GRAY),
+                                            ),
+                                    )
+                                    .clicked()
                                 {
-                                    self.dev_check_good_answer_count += 1;
-                                    if self.dev_check_good_answer_count == *QUESTION_ANSWERS_LENGTH
-                                    {
-                                        self.config.is_dev = true;
-                                    }
+                                    self.dev_check_check_answers(questions_answers);
                                 }
                             }
-                        }
-                    });
+
+                            if ui
+                                .button(RichText::new("Submit").font(FontId::proportional(20.0)))
+                                .clicked()
+                            {
+                                self.dev_check_check_answers(questions_answers);
+                            }
+                        });
                 });
             } else {
                 tab.update(&mut self.config, ctx, frame);
@@ -151,7 +155,6 @@ impl BepInExGUI {
             config: Default::default(),
             show_dev_check_window: false,
             dev_check_current_answer: vec!["".to_string(); *QUESTION_ANSWERS_LENGTH],
-            dev_check_good_answer_count: 0,
             time_when_disclaimer_showed_up: SystemTime::now(),
             tabs: vec![],
             mods: Default::default(),
@@ -236,7 +239,13 @@ impl BepInExGUI {
 
                 let mut i = 0;
                 for tab in &self.tabs {
-                    if ui.add_sized(spacing, Button::new(tab.name())).clicked() {
+                    if ui
+                        .add_sized(
+                            spacing,
+                            Button::new(RichText::new(tab.name()).font(FontId::proportional(20.0))),
+                        )
+                        .clicked()
+                    {
                         self.config.selected_tab_index = i;
                     }
 
@@ -252,5 +261,22 @@ impl BepInExGUI {
                 ui.add_space(10.);
             }
         });
+    }
+
+    fn dev_check_check_answers(
+        &mut self,
+        questions_answers: &std::sync::MutexGuard<Vec<(&str, &str)>>,
+    ) {
+        let mut good_answer_count = 0;
+        for i in 0..questions_answers.len() {
+            if self.dev_check_current_answer[i].to_lowercase()
+                == questions_answers[i].1.to_lowercase()
+            {
+                good_answer_count += 1;
+                if good_answer_count == *QUESTION_ANSWERS_LENGTH {
+                    self.config.is_dev = true;
+                }
+            }
+        }
     }
 }
