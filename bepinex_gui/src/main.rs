@@ -24,6 +24,7 @@ fn main() {
     let gui = bepinex_gui::BepInExGUI::new();
     let mut win_option = NativeOptions::default();
     win_option.initial_window_size = Some(Vec2::new(993., 519.));
+    win_option.initial_window_pos_centered = true;
     eframe::run_native(
         settings::APP_NAME,
         win_option,
