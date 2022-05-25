@@ -1,1 +1,1 @@
-pub(crate) const APP_NAME: &str = "BepInEx GUI";
+pub(crate) const APP_NAME: &str = "BepInExGUI";

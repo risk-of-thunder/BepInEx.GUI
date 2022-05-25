@@ -1,3 +1,9 @@
+use std::{
+    io::{Error, ErrorKind},
+    path::PathBuf,
+    process::Command,
+};
+
 use eframe::egui::*;
 
 pub(crate) fn compute_text_size(ui: &mut Ui, text: &str, is_heading: bool, is_wrap: bool) -> Vec2 {
@@ -28,5 +34,23 @@ pub(crate) fn scroll_when_trying_to_select_stuff_above_or_under_rect(ui: &mut Ui
         }
 
         ui.scroll_with_delta(scroll);
+    }
+}
+
+pub(crate) fn open_folder(folder_path: &PathBuf) {
+    let open_with = if cfg!(target_os = "linux") {
+        Ok("xdg-open")
+    } else if cfg!(target_os = "windows") {
+        Ok("explorer")
+    } else if cfg!(target_os = "macos") {
+        Ok("open")
+    } else {
+        Err(Error::new(ErrorKind::Other, "Open not supported"))
+    };
+
+    if open_with.is_ok() {
+        if let Err(err) = Command::new(open_with.unwrap()).arg(folder_path).spawn() {
+            tracing::error!("{:?}", err);
+        }
     }
 }

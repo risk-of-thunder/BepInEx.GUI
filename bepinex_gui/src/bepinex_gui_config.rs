@@ -1,5 +1,9 @@
+use std::path::PathBuf;
+
 use eframe::emath::*;
 use serde::*;
+
+use crate::settings;
 
 #[derive(Serialize, Deserialize)]
 pub struct BepInExGUIConfig {
@@ -18,6 +22,17 @@ impl Default for BepInExGUIConfig {
             first_time: true,
             is_dev: false,
             selected_tab_index: 0,
+        }
+    }
+}
+
+impl BepInExGUIConfig {
+    fn get_file_full_path() -> Option<PathBuf> {
+        if let Some(proj_dirs) = directories_next::ProjectDirs::from("", "", settings::APP_NAME) {
+            let data_dir = proj_dirs.data_dir().to_path_buf();
+            Some(data_dir.join("app.ron"))
+        } else {
+            None
         }
     }
 }

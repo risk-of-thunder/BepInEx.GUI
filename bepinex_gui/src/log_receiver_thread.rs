@@ -1,3 +1,6 @@
+use std::net::IpAddr;
+use std::net::Ipv4Addr;
+use std::net::SocketAddr;
 use std::net::TcpStream;
 
 use std::io;
@@ -12,21 +15,30 @@ use crate::packet_protocol;
 
 #[derive(Clone)]
 pub struct LogReceiverThread {
+    log_socket_port_receiver: u16,
     channel_sender: Sender<BepInExLog>,
 }
 
 impl LogReceiverThread {
-    pub fn new(channel_sender: Sender<BepInExLog>) -> LogReceiverThread {
+    pub fn new(
+        log_socket_port_receiver: u16,
+        channel_sender: Sender<BepInExLog>,
+    ) -> LogReceiverThread {
         LogReceiverThread {
+            log_socket_port_receiver: log_socket_port_receiver,
             channel_sender: channel_sender,
         }
     }
 
     pub fn start_thread_loop(&self) {
+        let server_address = SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+            self.log_socket_port_receiver,
+        );
         let inst = self.clone();
         thread::spawn(move || -> io::Result<()> {
             loop {
-                match TcpStream::connect("127.0.0.1:27090") {
+                match TcpStream::connect(server_address) {
                     Ok(mut tcp_stream) => loop {
                         match packet_protocol::read_packet_length(&mut tcp_stream) {
                             Ok(packet_length) => {
@@ -43,17 +55,17 @@ impl LogReceiverThread {
                                                 );
                                             }
                                             Err(err) => {
-                                                eprintln!(
-                                            "Error reading packet {}\n Disconnecting socket",
-                                            err
-                                        );
+                                                tracing::error!(
+                                                    "Error reading packet: {}\nDisconnecting socket",
+                                                    err
+                                                );
                                                 break;
                                             }
                                         }
                                     }
                                     Err(err) => {
-                                        eprintln!(
-                                            "Error reading packet log level {}\n Disconnecting socket",
+                                        tracing::error!(
+                                            "Error reading packet log level: {}\nDisconnecting socket",
                                             err
                                         );
                                         break;
@@ -61,15 +73,15 @@ impl LogReceiverThread {
                                 }
                             }
                             Err(err) => {
-                                eprintln!(
-                                    "Error reading packet length {}\n Disconnecting socket",
+                                tracing::error!(
+                                    "Error reading packet length: {}\nDisconnecting socket",
                                     err
                                 );
                                 break;
                             }
                         }
                     },
-                    Err(err) => eprintln!("Failed connecting {}", err),
+                    Err(err) => tracing::error!("Failed connecting: {}", err),
                 }
             }
         });
@@ -83,7 +95,7 @@ impl LogReceiverThread {
         let log_string = packet_protocol::packet_bytes_to_utf8_string(&string_packet_bytes);
         let bepinex_log = BepInExLog::new(log_level, log_string);
         if let Err(err) = &self.channel_sender.send(bepinex_log) {
-            eprintln!("error while sending utf8 string to channel : {}", err);
+            tracing::error!("error while sending utf8 string to channel: {}", err);
         }
     }
 }

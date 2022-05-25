@@ -1,4 +1,5 @@
 use eframe::{egui::*, CreationContext};
+use sysinfo::{Pid, Process, System, SystemExt};
 use tab::settings_tab::SettingsTab;
 
 use tab::console_tab::ConsoleTab;
@@ -9,6 +10,8 @@ use eframe::*;
 
 use eframe;
 
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::time::SystemTime;
 use std::{cell::RefCell, sync::mpsc::Receiver};
@@ -24,14 +27,18 @@ use crate::{check_if_dev, colors, settings};
 
 pub struct BepInExGUI {
     pub(crate) config: BepInExGUIConfig,
+    pub(crate) game_folder_full_path: String,
+    pub(crate) bepinex_root_full_path: String,
+    pub(crate) target_process_id: Pid,
     pub(crate) show_dev_check_window: bool,
     pub(crate) dev_check_current_answer: Vec<String>,
-    pub(crate) time_when_disclaimer_showed_up: SystemTime,
+    pub(crate) time_when_disclaimer_showed_up: Option<SystemTime>,
     pub(crate) tabs: Vec<Box<dyn Tab>>,
     pub(crate) mods: Rc<RefCell<Option<Vec<String>>>>,
     pub(crate) logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
     pub(crate) logs_receiver: Option<Receiver<BepInExLog>>,
     pub(crate) log_receiver_thread: Option<LogReceiverThread>,
+    pub(crate) log_socket_port_receiver: u16,
 }
 
 impl App for BepInExGUI {
@@ -46,6 +53,8 @@ impl App for BepInExGUI {
         } else {
             ctx.set_visuals(Visuals::light());
         }
+
+        if let Some(storage) = frame.storage_mut() {}
 
         self.update_receive_logs_from_channel();
 
@@ -65,12 +74,12 @@ setting to true the "Enables showing a console for log output." config option."#
                     static mut FIRST_TIME_SHOW:bool = true;
                     unsafe {
                         if FIRST_TIME_SHOW {
-                            self.time_when_disclaimer_showed_up = SystemTime::now();
+                            self.time_when_disclaimer_showed_up = Some(SystemTime::now());
                             FIRST_TIME_SHOW = false;
                         }
                     }
 
-                    if let Ok(_elapsed) = self.time_when_disclaimer_showed_up.elapsed() {
+                    if let Ok(_elapsed) = self.time_when_disclaimer_showed_up.unwrap().elapsed() {
                         let elapsed = _elapsed.as_secs() as i64;
                         if 9 - elapsed >= 0 {
                             ui.label(RichText::new((10 - elapsed).to_string()).font(FontId::proportional(20.0)));
@@ -145,22 +154,31 @@ setting to true the "Enables showing a console for log output." config option."#
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, &settings::APP_NAME, &self.config);
+        eframe::set_value(storage, settings::APP_NAME, &self.config);
     }
 }
 
 impl BepInExGUI {
-    pub fn new() -> Self {
+    pub fn new(
+        game_folder_full_path: &String,
+        bepinex_root_full_path: &String,
+        target_process_id: Pid,
+        log_socket_port_receiver: u16,
+    ) -> Self {
         Self {
             config: Default::default(),
+            game_folder_full_path: game_folder_full_path.to_string(),
+            bepinex_root_full_path: bepinex_root_full_path.to_string(),
+            target_process_id: target_process_id,
             show_dev_check_window: false,
             dev_check_current_answer: vec!["".to_string(); *QUESTION_ANSWERS_LENGTH],
-            time_when_disclaimer_showed_up: SystemTime::now(),
+            time_when_disclaimer_showed_up: None,
             tabs: vec![],
-            mods: Default::default(),
-            logs: Default::default(),
+            mods: Rc::new(RefCell::new(Some(vec!["".to_string()]))),
+            logs: Rc::new(RefCell::new(Some(vec![]))),
             logs_receiver: None,
             log_receiver_thread: None,
+            log_socket_port_receiver: log_socket_port_receiver,
         }
     }
 
@@ -170,35 +188,35 @@ impl BepInExGUI {
         }
         self.configure_fonts(&cc.egui_ctx);
 
-        self.init_log_receiver();
-
-        self.mods = Rc::from(RefCell::from(Some(vec!["".to_string()])));
-        self.logs = Rc::from(RefCell::from(Some(vec![])));
+        self.init_log_receiver(self.log_socket_port_receiver);
 
         self.init_tabs();
 
         self
     }
 
-    pub(crate) fn init_log_receiver(&mut self) {
+    fn init_log_receiver(&mut self, log_socket_port_receiver: u16) {
         let (logs_sender, logs_receiver) = channel();
         self.logs_receiver = Some(logs_receiver);
 
-        let log_receiver = LogReceiverThread::new(logs_sender.clone());
+        let log_receiver = LogReceiverThread::new(log_socket_port_receiver, logs_sender.clone());
         log_receiver.start_thread_loop();
         self.log_receiver_thread = Some(log_receiver);
     }
 
-    pub(crate) fn init_tabs(&mut self) {
+    fn init_tabs(&mut self) {
         self.tabs.push(Box::new(GeneralTab::new()));
         self.tabs.push(Box::new(ConsoleTab::new(
             self.mods.clone(),
             self.logs.clone(),
+            self.target_process_id,
+            PathBuf::from(self.game_folder_full_path.to_string()),
+            PathBuf::from(self.bepinex_root_full_path.to_string()),
         )));
         self.tabs.push(Box::new(SettingsTab::new()));
     }
 
-    pub(crate) fn update_receive_logs_from_channel(&mut self) {
+    fn update_receive_logs_from_channel(&mut self) {
         let mut logs_borrow = self.logs.borrow_mut();
         let logs = logs_borrow.as_mut().unwrap();
 
