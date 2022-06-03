@@ -1,7 +1,5 @@
 use std::sync::Mutex;
 
-use rand::prelude::*;
-
 lazy_static! {
     pub static ref QUESTIONS_ANSWERS: Mutex<Vec<(&'static str, &'static str)>> = {
         let mut qa = Vec::new();

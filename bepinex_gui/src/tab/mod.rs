@@ -16,5 +16,5 @@ pub trait Tab {
         frame: &mut eframe::Frame,
     );
 
-    fn require_dev_check(&self) -> bool;
+    fn is_dev_only(&self) -> bool;
 }

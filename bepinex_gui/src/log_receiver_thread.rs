@@ -1,3 +1,4 @@
+use core::time;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
 use std::net::SocketAddr;
@@ -83,6 +84,8 @@ impl LogReceiverThread {
                     },
                     Err(err) => tracing::error!("Failed connecting: {}", err),
                 }
+
+                thread::sleep(time::Duration::from_millis(2000));
             }
         });
     }
