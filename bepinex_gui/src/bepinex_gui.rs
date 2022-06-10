@@ -13,8 +13,9 @@ use eframe;
 
 use core::time;
 use std::path::PathBuf;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::channel;
+use std::sync::Arc;
 use std::time::SystemTime;
 use std::{cell::RefCell, sync::mpsc::Receiver};
 use std::{io, thread};
@@ -39,6 +40,7 @@ pub struct BepInExGUI {
     pub(crate) show_dev_check_window: bool,
     pub(crate) dev_check_current_answer: Vec<String>,
     pub(crate) time_when_disclaimer_showed_up: Option<SystemTime>,
+    pub(crate) should_exit_app: Arc<AtomicBool>,
     pub(crate) tabs: Vec<Box<dyn Tab>>,
     pub(crate) mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
     pub(crate) logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
@@ -49,6 +51,10 @@ pub struct BepInExGUI {
 
 impl App for BepInExGUI {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+        if self.should_exit_app.load(Ordering::Relaxed) {
+            frame.quit();
+        }
+
         ctx.request_repaint();
 
         #[cfg(debug_assertions)]
@@ -146,6 +152,7 @@ impl BepInExGUI {
             show_dev_check_window: false,
             dev_check_current_answer: vec!["".to_string(); *QUESTION_ANSWERS_LENGTH],
             time_when_disclaimer_showed_up: None,
+            should_exit_app: Arc::new(AtomicBool::new(false)),
             tabs: vec![],
             mods: Rc::new(RefCell::new(Some(vec![BepInExMod {
                 name: "".to_string(),
@@ -296,6 +303,7 @@ setting to true the "Enables showing a console for log output." config option."#
         let mut sys = sysinfo::System::new_all();
 
         let close_window_when_game_closes = self.config.close_window_when_game_closes.clone();
+        let should_exit_app = self.should_exit_app.clone();
         thread::spawn(move || -> io::Result<()> {
             loop {
                 if !sys.refresh_process(target_process_id)
@@ -307,7 +315,9 @@ setting to true the "Enables showing a console for log output." config option."#
                 thread::sleep(time::Duration::from_millis(2000));
             }
 
-            std::process::exit(0);
+            should_exit_app.store(true, Ordering::Relaxed);
+
+            Ok(())
         });
     }
 
