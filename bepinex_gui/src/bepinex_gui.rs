@@ -54,7 +54,6 @@ impl App for BepInExGUI {
         if self.should_exit_app.load(Ordering::Relaxed) {
             frame.quit();
         }
-
         ctx.request_repaint();
 
         #[cfg(debug_assertions)]
@@ -75,7 +74,8 @@ impl App for BepInExGUI {
 
             let tab = &mut self.tabs[self.config.selected_tab_index];
 
-            self.show_dev_check_window = tab.is_dev_only() && !self.config.is_dev;
+            let is_dev = self.config.is_dev.load(Ordering::Relaxed);
+            self.show_dev_check_window = tab.is_dev_only() && !is_dev;
 
             if self.show_dev_check_window {
                 CentralPanel::default().show(ctx, |_| {
@@ -189,7 +189,11 @@ impl BepInExGUI {
         let (logs_sender, logs_receiver) = channel();
         self.logs_receiver = Some(logs_receiver);
 
-        let log_receiver = LogReceiverThread::new(log_socket_port_receiver, logs_sender.clone());
+        let log_receiver = LogReceiverThread::new(
+            log_socket_port_receiver,
+            logs_sender.clone(),
+            self.config.is_dev.clone(),
+        );
         log_receiver.start_thread_loop();
         self.log_receiver_thread = Some(log_receiver);
     }
@@ -315,6 +319,7 @@ setting to true the "Enables showing a console for log output." config option."#
                 thread::sleep(time::Duration::from_millis(2000));
             }
 
+            tracing::info!("Target process is not alive, scheduling exit");
             should_exit_app.store(true, Ordering::Relaxed);
 
             Ok(())
@@ -366,7 +371,7 @@ setting to true the "Enables showing a console for log output." config option."#
             {
                 good_answer_count += 1;
                 if good_answer_count == *QUESTION_ANSWERS_LENGTH {
-                    self.config.is_dev = true;
+                    self.config.is_dev.store(true, Ordering::Relaxed);
                 }
             }
         }

@@ -18,7 +18,7 @@ pub struct BepInExGUIConfig {
     pub dark_mode: bool,
     pub window_pos: Pos2,
     pub first_time: bool,
-    pub is_dev: bool,
+    pub is_dev: Arc<AtomicBool>,
     pub selected_tab_index: usize,
 
     // those fields are saved through the regular bepinex config system
@@ -38,7 +38,7 @@ impl Default for BepInExGUIConfig {
             dark_mode: true,
             window_pos: Default::default(),
             first_time: true,
-            is_dev: false,
+            is_dev: Arc::new(AtomicBool::new(false)),
             selected_tab_index: 0,
             close_window_when_game_loaded: false,
             close_window_when_game_closes: Arc::new(AtomicBool::new(true)),
