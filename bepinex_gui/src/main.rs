@@ -1,4 +1,4 @@
-// Disable console
+// Uncomment for disabling console
 // #![windows_subsystem = "windows"]
 
 #[macro_use]
@@ -10,6 +10,8 @@ use std::env;
 use std::fs::File;
 use std::sync::Mutex;
 use sysinfo::Pid;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::{fmt, Registry};
 
 mod bepinex_gui;
 mod bepinex_gui_config;
@@ -64,10 +66,20 @@ fn main() {
 fn init_logger() {
     if let Some(log_file_path) = settings::get_log_file_full_path() {
         if let Ok(file) = File::create(log_file_path) {
-            tracing_subscriber::fmt()
-                .with_writer(Mutex::new(file))
-                .with_writer(std::io::stdout)
-                .init();
+            let subscriber = Registry::default()
+                .with(
+                    fmt::Layer::default()
+                        .with_writer(Mutex::new(file))
+                        .with_ansi(false)
+                        .with_line_number(true),
+                )
+                .with(
+                    fmt::Layer::default()
+                        .with_writer(std::io::stdout)
+                        .with_line_number(true),
+                );
+
+            let _ = tracing::subscriber::set_global_default(subscriber);
         } else {
             tracing_subscriber::fmt::init()
         }
@@ -92,6 +104,7 @@ fn check_args_and_fill_if_needed(args: &mut Vec<String>) {
         args.push("17584".to_string()); // Target Process Id
         args.push("27090".to_string()); // Socket port used for comm with the bep gui patcher
     } else if args.len() != 8 {
+        tracing::error!("PROBLEM WITH ARGS {:?}", args);
         panic!("PROBLEM WITH ARGS {:?}", args);
     }
 }
