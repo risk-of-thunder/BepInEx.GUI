@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::atomic::Ordering};
+use std::sync::atomic::Ordering;
 
 use eframe::{
     egui::{CentralPanel, Checkbox, Context, RichText},
@@ -9,15 +9,11 @@ use crate::bepinex_gui_config::BepInExGUIConfig;
 
 use super::Tab;
 
-pub struct SettingsTab {
-    pub bepinex_gui_csharp_cfg_full_path: PathBuf,
-}
+pub struct SettingsTab {}
 
 impl SettingsTab {
-    pub fn new(bepinex_gui_csharp_cfg_full_path: PathBuf) -> Self {
-        Self {
-            bepinex_gui_csharp_cfg_full_path,
-        }
+    pub fn new() -> Self {
+        Self {}
     }
 
     fn render(&mut self, gui_config: &mut BepInExGUIConfig, ctx: &Context) {

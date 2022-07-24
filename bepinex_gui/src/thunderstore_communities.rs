@@ -28,7 +28,7 @@ pub struct Result {
     pub require_package_listing_approval: Option<bool>,
 }
 
-pub fn find_modding_discord_from_target_process_name(
+fn find_modding_discord_from_target_process_name(
     target_process_id: Pid,
 ) -> std::result::Result<String, Box<dyn std::error::Error>> {
     let json = reqwest::blocking::get(URL).and_then(|resp| resp.text())?;

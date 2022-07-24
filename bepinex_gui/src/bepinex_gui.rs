@@ -31,22 +31,22 @@ use crate::{bepinex_gui_config::BepInExGUIConfig, bepinex_log::BepInExLog, tab};
 use crate::{check_if_dev, colors, egui_utils, settings, thunderstore_communities};
 
 pub struct BepInExGUI {
-    pub(crate) config: BepInExGUIConfig,
-    pub(crate) target_name: String,
-    pub(crate) game_folder_full_path: PathBuf,
-    pub(crate) bepinex_root_full_path: PathBuf,
-    pub(crate) bepinex_gui_csharp_cfg_full_path: PathBuf,
-    pub(crate) target_process_id: Pid,
-    pub(crate) show_dev_check_window: bool,
-    pub(crate) dev_check_current_answer: Vec<String>,
-    pub(crate) time_when_disclaimer_showed_up: Option<SystemTime>,
-    pub(crate) should_exit_app: Arc<AtomicBool>,
-    pub(crate) tabs: Vec<Box<dyn Tab>>,
-    pub(crate) mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
-    pub(crate) logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
-    pub(crate) logs_receiver: Option<Receiver<BepInExLog>>,
-    pub(crate) log_receiver_thread: Option<LogReceiverThread>,
-    pub(crate) log_socket_port_receiver: u16,
+    config: BepInExGUIConfig,
+    target_name: String,
+    game_folder_full_path: PathBuf,
+    bepinex_root_full_path: PathBuf,
+    bepinex_gui_csharp_cfg_full_path: PathBuf,
+    target_process_id: Pid,
+    show_dev_check_window: bool,
+    dev_check_current_answer: Vec<String>,
+    time_when_disclaimer_showed_up: Option<SystemTime>,
+    should_exit_app: Arc<AtomicBool>,
+    tabs: Vec<Box<dyn Tab>>,
+    mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
+    logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
+    logs_receiver: Option<Receiver<BepInExLog>>,
+    log_receiver_thread: Option<LogReceiverThread>,
+    log_socket_port_receiver: u16,
 }
 
 impl App for BepInExGUI {
@@ -214,9 +214,7 @@ impl BepInExGUI {
             self.game_folder_full_path.clone(),
             self.bepinex_root_full_path.clone(),
         )));
-        self.tabs.push(Box::new(SettingsTab::new(
-            self.bepinex_gui_csharp_cfg_full_path.clone(),
-        )));
+        self.tabs.push(Box::new(SettingsTab::new()));
     }
 
     fn update_receive_logs_from_channel(&mut self) {
@@ -251,7 +249,7 @@ impl BepInExGUI {
         }
     }
 
-    pub(crate) fn show_first_time_disclaimer(&mut self, ctx: &Context) {
+    fn show_first_time_disclaimer(&mut self, ctx: &Context) {
         Window::new("Disclaimer").min_width(ctx.available_rect().size().x).anchor(Align2::CENTER_CENTER, Vec2::ZERO).show(ctx, |ui| {
         ui.vertical(|ui| {
             ui.add(
@@ -287,7 +285,7 @@ setting to true the "Enables showing a console for log output." config option."#
     });
     }
 
-    pub(crate) fn configure_fonts(&self, ctx: &Context) {
+    fn configure_fonts(&self, ctx: &Context) {
         let mut font_def = FontDefinitions::default();
         font_def.font_data.insert(
             "MesloLGS".to_string(),
@@ -326,7 +324,7 @@ setting to true the "Enables showing a console for log output." config option."#
         });
     }
 
-    pub(crate) fn render_header(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    fn render_header(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 let mut button_size = ui.available_size() / 3.;

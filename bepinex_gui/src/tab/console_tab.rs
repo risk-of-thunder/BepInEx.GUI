@@ -22,21 +22,21 @@ use crate::{
 use super::Tab;
 
 pub struct ConsoleTab {
-    pub mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
-    pub logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
-    pub last_log_count: usize,
-    pub log_text_filter: String,
-    pub log_level_filter: LogLevel,
-    pub log_auto_scroll_to_bottom: bool,
-    pub target_process_id: Pid,
-    pub target_process_paused: bool,
-    pub game_folder_full_path: PathBuf,
-    pub bepinex_root_full_path: PathBuf,
-    pub selected_index_in_mods_combo_box: usize,
-    pub button_currently_down: bool,
-    pub first_index_of_log_that_is_selected: u32,
-    pub smallest_index_of_hovered_log: u32,
-    pub biggest_index_of_hovered_log: u32,
+    mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
+    logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
+    last_log_count: usize,
+    log_text_filter: String,
+    log_level_filter: LogLevel,
+    log_auto_scroll_to_bottom: bool,
+    target_process_id: Pid,
+    target_process_paused: bool,
+    game_folder_full_path: PathBuf,
+    bepinex_root_full_path: PathBuf,
+    selected_index_in_mods_combo_box: usize,
+    button_currently_down: bool,
+    first_index_of_log_that_is_selected: u32,
+    smallest_index_of_hovered_log: u32,
+    biggest_index_of_hovered_log: u32,
 }
 
 impl ConsoleTab {

@@ -14,12 +14,12 @@ use crate::{
 use super::Tab;
 
 pub struct GeneralTab {
-    pub mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
-    pub logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
-    pub target_name: String,
-    pub game_folder_full_path: PathBuf,
-    pub bepinex_root_full_path: PathBuf,
-    pub target_process_id: Pid,
+    mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
+    logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
+    target_name: String,
+    game_folder_full_path: PathBuf,
+    bepinex_root_full_path: PathBuf,
+    target_process_id: Pid,
 }
 
 impl GeneralTab {
