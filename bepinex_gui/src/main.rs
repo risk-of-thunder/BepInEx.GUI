@@ -81,10 +81,10 @@ fn init_logger() {
 
             let _ = tracing::subscriber::set_global_default(subscriber);
         } else {
-            tracing_subscriber::fmt::init()
+            tracing_subscriber::fmt::init();
         }
     } else {
-        tracing_subscriber::fmt::init()
+        tracing_subscriber::fmt::init();
     }
 }
 

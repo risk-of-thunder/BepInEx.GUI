@@ -12,8 +12,10 @@ pub(crate) fn get_directory_full_path() -> Option<PathBuf> {
 
 pub(crate) fn get_log_file_full_path() -> Option<PathBuf> {
     if let Some(directory_full_path) = get_directory_full_path() {
-        Some(directory_full_path.join("log.txt"))
-    } else {
-        None
+        if std::fs::create_dir_all(&directory_full_path).is_ok() {
+            return Some(directory_full_path.join("log.txt"));
+        }
     }
+
+    None
 }
