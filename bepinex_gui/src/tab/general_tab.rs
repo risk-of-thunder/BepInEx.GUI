@@ -120,8 +120,4 @@ impl Tab for GeneralTab {
 
         self.render(gui_config, ctx);
     }
-
-    fn is_dev_only(&self) -> bool {
-        false
-    }
 }

@@ -1,6 +1,6 @@
 use clipboard::*;
 use eframe::{egui::*, *};
-use std::{cell::RefCell, mem::size_of, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, mem::size_of, path::PathBuf, rc::Rc, time::SystemTime};
 use sysinfo::{Pid, PidExt, SystemExt};
 #[cfg(windows)]
 use winapi::{
@@ -24,6 +24,7 @@ use super::Tab;
 pub struct ConsoleTab {
     mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
     logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
+    time_when_console_disclaimer_showed_up: Option<SystemTime>,
     last_log_count: usize,
     log_text_filter: String,
     log_level_filter: LogLevel,
@@ -50,6 +51,7 @@ impl ConsoleTab {
         Self {
             mods,
             logs,
+            time_when_console_disclaimer_showed_up: None,
             last_log_count: 0,
             log_text_filter: Default::default(),
             log_level_filter: LogLevel::All,
@@ -394,12 +396,56 @@ impl Tab for ConsoleTab {
         ctx: &eframe::egui::Context,
         _frame: &mut eframe::Frame,
     ) {
-        self.render_footer(ctx);
+        if gui_config.first_time_console_disclaimer {
+            CentralPanel::default().show(ctx, |_| {
+                    Window::new("Console Disclaimer")
+                        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+                        .show(ctx, |ui| {
+                            ui.heading(
+                                r#"The console is meant to be used by mod developers.
+                                If any of your mods is malfunctioning and that you wish to receive help in the #tech-support channel of the discord:
+                                Please use the buttons below and use the "Copy Log to Clipboard" button for then simply pasting it in the #tech-support channel."#);
+                            ui.style_mut().visuals.extreme_bg_color = if gui_config.dark_mode {
+                                colors::DARK_GRAY
+                            } else {
+                                colors::LIGHT_GRAY
+                            };
 
-        self.render(gui_config, ctx);
-    }
+                            static mut FIRST_TIME_SHOW_CONSOLE: bool = true;
+                            unsafe {
+                                if FIRST_TIME_SHOW_CONSOLE {
+                                    self.time_when_console_disclaimer_showed_up =
+                                        Some(SystemTime::now());
+                                    FIRST_TIME_SHOW_CONSOLE = false;
+                                }
+                            }
 
-    fn is_dev_only(&self) -> bool {
-        true
+                            if let Ok(_elapsed) =
+                                self.time_when_console_disclaimer_showed_up.unwrap().elapsed()
+                            {
+                                let elapsed = _elapsed.as_secs() as i64;
+                                if 9 - elapsed >= 0 {
+                                    ui.label(
+                                        RichText::new((10 - elapsed).to_string())
+                                            .font(FontId::proportional(20.0)),
+                                    );
+                                } else {
+                                    if ui
+                                        .button(
+                                            RichText::new("Ok").font(FontId::proportional(20.0)),
+                                        )
+                                        .clicked()
+                                    {
+                                        gui_config.first_time_console_disclaimer = false;
+                                    }
+                                }
+                            }
+                        });
+                });
+        } else {
+            self.render_footer(ctx);
+
+            self.render(gui_config, ctx);
+        }
     }
 }

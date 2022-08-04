@@ -6,13 +6,9 @@ use std::net::TcpStream;
 
 use std::io;
 
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
 use std::thread;
 
 use std::sync::mpsc::Sender;
-use std::time::Duration;
 
 use crate::bepinex_log::BepInExLog;
 use crate::bepinex_log::LogLevel;
@@ -22,19 +18,16 @@ use crate::packet_protocol;
 pub struct LogReceiverThread {
     log_socket_port_receiver: u16,
     channel_sender: Sender<BepInExLog>,
-    is_dev: Arc<AtomicBool>,
 }
 
 impl LogReceiverThread {
     pub fn new(
         log_socket_port_receiver: u16,
         channel_sender: Sender<BepInExLog>,
-        is_dev: Arc<AtomicBool>,
     ) -> LogReceiverThread {
         LogReceiverThread {
             log_socket_port_receiver: log_socket_port_receiver,
             channel_sender: channel_sender,
-            is_dev: is_dev,
         }
     }
 
@@ -45,8 +38,6 @@ impl LogReceiverThread {
         );
         let inst = self.clone();
         thread::spawn(move || -> io::Result<()> {
-            let thread_start_time = std::time::Instant::now();
-
             loop {
                 match TcpStream::connect(server_address) {
                     Ok(mut tcp_stream) => loop {
@@ -89,17 +80,6 @@ impl LogReceiverThread {
                                 );
                                 break;
                             }
-                        }
-
-                        let is_dev = inst.is_dev.load(Ordering::Relaxed);
-                        let time_now = std::time::Instant::now();
-                        if !is_dev
-                            && (time_now.duration_since(thread_start_time))
-                                > Duration::from_secs(60 * 3)
-                        {
-                            tracing::info!("3 minutes have passed, closing log listener since at this point it is assumed every mods loaded and console won't ever be used for this session (user is not a dev).");
-
-                            return Ok(());
                         }
                     },
                     Err(err) => tracing::error!("Failed connecting: {}", err),

@@ -10,25 +10,36 @@ use tab::general_tab::GeneralTab;
 use eframe::*;
 
 use eframe;
+use winapi::shared::minwindef::BOOL;
+use winapi::shared::windef::{HWND, POINT};
+use winapi::um::winuser::{
+    CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData, CF_HDROP,
+};
+use zip::write::FileOptions;
 
 use core::time;
-use std::path::PathBuf;
+use std::ffi::OsString;
+use std::fs::File;
+use std::io::{BufReader, Write};
+use std::mem::size_of;
+use std::os::windows::prelude::OsStrExt;
+use std::path::{Path, PathBuf};
+use std::ptr::copy_nonoverlapping;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::time::SystemTime;
 use std::{cell::RefCell, sync::mpsc::Receiver};
-use std::{io, thread};
+use std::{fs, io, thread};
 
 use std::rc::Rc;
 
 use tab::Tab;
 
 use crate::bepinex_mod::BepInExMod;
-use crate::check_if_dev::QUESTION_ANSWERS_LENGTH;
 use crate::log_receiver_thread::LogReceiverThread;
 use crate::{bepinex_gui_config::BepInExGUIConfig, bepinex_log::BepInExLog, tab};
-use crate::{check_if_dev, colors, egui_utils, settings, thunderstore_communities};
+use crate::{egui_utils, settings, thunderstore_communities};
 
 pub struct BepInExGUI {
     config: BepInExGUIConfig,
@@ -37,8 +48,6 @@ pub struct BepInExGUI {
     bepinex_root_full_path: PathBuf,
     bepinex_gui_csharp_cfg_full_path: PathBuf,
     target_process_id: Pid,
-    show_dev_check_window: bool,
-    dev_check_current_answer: Vec<String>,
     time_when_disclaimer_showed_up: Option<SystemTime>,
     should_exit_app: Arc<AtomicBool>,
     tabs: Vec<Box<dyn Tab>>,
@@ -74,56 +83,7 @@ impl App for BepInExGUI {
 
             let tab = &mut self.tabs[self.config.selected_tab_index];
 
-            let is_dev = self.config.is_dev.load(Ordering::Relaxed);
-            self.show_dev_check_window = tab.is_dev_only() && !is_dev;
-
-            if self.show_dev_check_window {
-                CentralPanel::default().show(ctx, |_| {
-                    Window::new("This tab requires a dev check to be used")
-                        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
-                        .show(ctx, |ui| {
-                            let questions_answers =
-                                &check_if_dev::QUESTIONS_ANSWERS.lock().unwrap();
-                            for i in 0..questions_answers.len() {
-                                ui.heading(questions_answers[i].0);
-                                ui.style_mut().visuals.extreme_bg_color = if self.config.dark_mode {
-                                    colors::DARK_GRAY
-                                } else {
-                                    colors::LIGHT_GRAY
-                                };
-
-                                let answer_edit_line_size = Vec2::new(ui.available_width(), 20.);
-                                if ui
-                                    .add_sized(
-                                        answer_edit_line_size,
-                                        TextEdit::singleline(&mut self.dev_check_current_answer[i])
-                                            .text_color(if self.config.dark_mode {
-                                                Color32::WHITE
-                                            } else {
-                                                Color32::BLACK
-                                            })
-                                            .hint_text(
-                                                WidgetText::from("Type Answer Here")
-                                                    .color(colors::FADED_LIGHT_GRAY),
-                                            ),
-                                    )
-                                    .clicked()
-                                {
-                                    self.dev_check_check_answers(questions_answers);
-                                }
-                            }
-
-                            if ui
-                                .button(RichText::new("Submit").font(FontId::proportional(20.0)))
-                                .clicked()
-                            {
-                                self.dev_check_check_answers(questions_answers);
-                            }
-                        });
-                });
-            } else {
-                tab.update(&mut self.config, ctx, frame);
-            }
+            tab.update(&mut self.config, ctx, frame);
         }
     }
 
@@ -149,8 +109,6 @@ impl BepInExGUI {
             bepinex_root_full_path,
             bepinex_gui_csharp_cfg_full_path,
             target_process_id: target_process_id,
-            show_dev_check_window: false,
-            dev_check_current_answer: vec!["".to_string(); *QUESTION_ANSWERS_LENGTH],
             time_when_disclaimer_showed_up: None,
             should_exit_app: Arc::new(AtomicBool::new(false)),
             tabs: vec![],
@@ -189,11 +147,7 @@ impl BepInExGUI {
         let (logs_sender, logs_receiver) = channel();
         self.logs_receiver = Some(logs_receiver);
 
-        let log_receiver = LogReceiverThread::new(
-            log_socket_port_receiver,
-            logs_sender.clone(),
-            self.config.is_dev.clone(),
-        );
+        let log_receiver = LogReceiverThread::new(log_socket_port_receiver, logs_sender.clone());
         log_receiver.start_thread_loop();
         self.log_receiver_thread = Some(log_receiver);
     }
@@ -351,28 +305,11 @@ setting to true the "Enables showing a console for log output." config option."#
 
             ui.add_space(10.);
 
-            if !self.show_dev_check_window {
+            if !self.config.first_time_console_disclaimer {
                 self.tabs[self.config.selected_tab_index].update_top_panel(&mut self.config, ui);
                 ui.add_space(10.);
             }
         });
-    }
-
-    fn dev_check_check_answers(
-        &mut self,
-        questions_answers: &std::sync::MutexGuard<Vec<(&str, &str)>>,
-    ) {
-        let mut good_answer_count = 0;
-        for i in 0..questions_answers.len() {
-            if self.dev_check_current_answer[i].to_lowercase()
-                == questions_answers[i].1.to_lowercase()
-            {
-                good_answer_count += 1;
-                if good_answer_count == *QUESTION_ANSWERS_LENGTH {
-                    self.config.is_dev.store(true, Ordering::Relaxed);
-                }
-            }
-        }
     }
 }
 
@@ -439,7 +376,8 @@ pub fn render_useful_buttons_footer(
             .add_sized(
                 button_size,
                 Button::new(
-                    RichText::new("Copy Log to Clipboard").font(FontId::proportional(FONT_SIZE)),
+                    RichText::new("Copy Log to Clipboard")
+                        .font(FontId::proportional(FONT_SIZE * 1.5)),
                 ),
             )
             .clicked()
@@ -448,17 +386,40 @@ pub fn render_useful_buttons_footer(
                 Ok(ctx) => {
                     let mut clipboard: ClipboardContext = ctx;
 
-                    let logs_borrow = logs.borrow();
-                    let logs = logs_borrow.as_ref().unwrap();
-                    let selected_logs_string: String = logs
-                        .into_iter()
-                        .map(|x| x.data.to_string())
-                        .collect::<Vec<String>>()
-                        .join("\n");
-                    match clipboard.set_contents(selected_logs_string) {
-                        Ok(_) => {}
-                        Err(err) => {
-                            tracing::error!("Failed copying logs to clipboard: {}", err);
+                    // check log file size, if its more than size limit, just zip it
+                    let log_file_path = bepinex_root_full_path.join("LogOutput.log");
+                    if let Ok(log_file_metadata) = fs::metadata(&log_file_path) {
+                        let file_size_bytes = log_file_metadata.len();
+                        const FIVE_MEGABYTES: u64 = 5000000;
+                        if file_size_bytes >= FIVE_MEGABYTES {
+                            if let Some(zip_file_path) = settings::get_tmp_zip_log_full_path() {
+                                match zip_log_file(&zip_file_path, &log_file_path) {
+                                    Ok(_) => {
+                                        // file is zipped, clipboard it
+                                        copy_files_to_clipboard(
+                                            vec![zip_file_path.into_os_string()],
+                                        )
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Failed zipping: {}", e.to_string());
+                                    }
+                                }
+                            }
+                        } else {
+                            let logs_borrow = logs.borrow();
+                            let logs = logs_borrow.as_ref().unwrap();
+                            let selected_logs_string: String = logs
+                                .into_iter()
+                                .map(|x| x.data.to_string())
+                                .collect::<Vec<String>>()
+                                .join("\n");
+
+                            match clipboard.set_contents(selected_logs_string) {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    tracing::error!("Failed copying logs to clipboard: {}", err);
+                                }
+                            }
                         }
                     }
                 }
@@ -480,4 +441,63 @@ pub fn render_useful_buttons_footer(
         }
     });
     ui.add_space(25.);
+}
+
+fn zip_log_file<P: AsRef<Path>, P2: AsRef<Path>>(
+    zip_file_path: P,
+    log_file_path: P2,
+) -> zip::result::ZipResult<()> {
+    let zip_file = std::fs::File::create(&zip_file_path).unwrap();
+
+    let mut zip = zip::ZipWriter::new(zip_file);
+
+    let options = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .unix_permissions(0o755);
+
+    let log_file = File::open(log_file_path)?;
+    zip.start_file("LogOutput.log", options)?;
+    zip.write_all(BufReader::new(log_file).buffer())?;
+
+    zip.finish()?;
+    Ok(())
+}
+
+#[repr(C, packed(1))]
+pub struct DROPFILES {
+    pub p_files: u32,
+    pub pt: POINT,
+    pub f_nc: BOOL,
+    pub f_wide: BOOL,
+}
+
+fn copy_files_to_clipboard(entries: Vec<OsString>) {
+    let mut clip_buf: Vec<u16> = vec![];
+    for entry in &entries {
+        let mut result: Vec<u16> = entry.encode_wide().collect();
+        clip_buf.append(&mut result);
+        clip_buf.push(0);
+    }
+    clip_buf.push(0);
+    let p_files = size_of::<DROPFILES>();
+    let mut h_global = vec![0u8; clip_buf.len() * 2 + p_files];
+    let dropfiles: *mut DROPFILES = h_global.as_mut_ptr() as *mut DROPFILES;
+    let buf_ptr = clip_buf.as_ptr();
+    unsafe {
+        (*dropfiles).p_files = p_files as _;
+        (*dropfiles).f_wide = 1 as BOOL;
+        copy_nonoverlapping(
+            buf_ptr,
+            h_global.as_mut_ptr().offset(p_files as _) as *mut u16,
+            clip_buf.len(),
+        );
+        let h_mem = core::mem::transmute(h_global.as_mut_ptr());
+        OpenClipboard(0 as HWND);
+        EmptyClipboard();
+        CloseClipboard();
+
+        OpenClipboard(0 as HWND);
+        SetClipboardData(CF_HDROP, h_mem);
+        CloseClipboard();
+    }
 }

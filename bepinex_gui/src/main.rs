@@ -1,8 +1,5 @@
 // Uncomment for disabling console
-// #![windows_subsystem = "windows"]
-
-#[macro_use]
-extern crate lazy_static;
+#![windows_subsystem = "windows"]
 
 use eframe::egui::*;
 use eframe::*;
@@ -17,7 +14,6 @@ mod bepinex_gui;
 mod bepinex_gui_config;
 mod bepinex_log;
 mod bepinex_mod;
-mod check_if_dev;
 mod colors;
 mod egui_utils;
 mod log_receiver_thread;
@@ -40,6 +36,9 @@ fn main() {
     let bepinex_gui_csharp_cfg_full_path = &args[5];
     let target_process_id = args[6].parse::<Pid>().unwrap();
     let log_socket_port_receiver = args[7].parse::<u16>().unwrap();
+
+    // todo: sometimes there can be multiple log files, why: LogOutput.log is not always the file we want to zip
+    // Simply pass the used log file as arg
 
     let gui = bepinex_gui::BepInExGUI::new(
         target_name.into(),

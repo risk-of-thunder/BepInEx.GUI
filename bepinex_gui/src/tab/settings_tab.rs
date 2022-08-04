@@ -75,8 +75,4 @@ impl Tab for SettingsTab {
     ) {
         self.render(gui_config, ctx);
     }
-
-    fn is_dev_only(&self) -> bool {
-        false
-    }
 }

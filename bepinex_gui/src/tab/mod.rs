@@ -15,6 +15,4 @@ pub trait Tab {
         ctx: &eframe::egui::Context,
         frame: &mut eframe::Frame,
     );
-
-    fn is_dev_only(&self) -> bool;
 }
