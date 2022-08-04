@@ -380,8 +380,7 @@ pub fn render_useful_buttons_footer(
             .add_sized(
                 button_size,
                 Button::new(
-                    RichText::new("Copy Log to Clipboard")
-                        .font(FontId::proportional(FONT_SIZE * 1.5)),
+                    RichText::new("Copy Log to Clipboard").font(FontId::proportional(FONT_SIZE)),
                 ),
             )
             .clicked()
