@@ -19,6 +19,7 @@ pub struct GeneralTab {
     target_name: String,
     game_folder_full_path: PathBuf,
     bepinex_root_full_path: PathBuf,
+    bepinex_log_output_file_full_path: PathBuf,
     target_process_id: Pid,
 }
 
@@ -30,6 +31,7 @@ impl GeneralTab {
         target_name: String,
         game_folder_full_path: PathBuf,
         bepinex_root_full_path: PathBuf,
+        bepinex_log_output_file_full_path: PathBuf,
     ) -> Self {
         Self {
             mods,
@@ -38,6 +40,7 @@ impl GeneralTab {
             target_name,
             game_folder_full_path,
             bepinex_root_full_path,
+            bepinex_log_output_file_full_path,
         }
     }
 
@@ -48,7 +51,7 @@ impl GeneralTab {
                 ctx,
                 &self.game_folder_full_path,
                 &self.bepinex_root_full_path,
-                &self.logs,
+                &self.bepinex_log_output_file_full_path,
                 self.target_process_id,
             );
         });

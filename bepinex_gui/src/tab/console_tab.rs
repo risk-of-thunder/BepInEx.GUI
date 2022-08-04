@@ -33,6 +33,7 @@ pub struct ConsoleTab {
     target_process_paused: bool,
     game_folder_full_path: PathBuf,
     bepinex_root_full_path: PathBuf,
+    bepinex_log_output_file_full_path: PathBuf,
     selected_index_in_mods_combo_box: usize,
     button_currently_down: bool,
     first_index_of_log_that_is_selected: u32,
@@ -47,6 +48,7 @@ impl ConsoleTab {
         target_process_id: Pid,
         game_folder_full_path: PathBuf,
         bepinex_root_full_path: PathBuf,
+        bepinex_log_output_file_full_path: PathBuf,
     ) -> Self {
         Self {
             mods,
@@ -60,6 +62,7 @@ impl ConsoleTab {
             target_process_paused: false,
             game_folder_full_path,
             bepinex_root_full_path,
+            bepinex_log_output_file_full_path,
             selected_index_in_mods_combo_box: 0,
             button_currently_down: false,
             first_index_of_log_that_is_selected: std::u32::MAX,
@@ -226,7 +229,7 @@ impl ConsoleTab {
                 ctx,
                 &self.game_folder_full_path,
                 &self.bepinex_root_full_path,
-                &self.logs,
+                &self.bepinex_log_output_file_full_path,
                 self.target_process_id,
             );
         });

@@ -1,4 +1,3 @@
-use clipboard::{ClipboardContext, ClipboardProvider};
 use eframe::{egui::*, CreationContext};
 use sysinfo::{Pid, SystemExt};
 use tab::settings_tab::SettingsTab;
@@ -46,6 +45,7 @@ pub struct BepInExGUI {
     target_name: String,
     game_folder_full_path: PathBuf,
     bepinex_root_full_path: PathBuf,
+    bepinex_log_output_file_full_path: PathBuf,
     bepinex_gui_csharp_cfg_full_path: PathBuf,
     target_process_id: Pid,
     time_when_disclaimer_showed_up: Option<SystemTime>,
@@ -98,6 +98,7 @@ impl BepInExGUI {
         target_name: String,
         game_folder_full_path: PathBuf,
         bepinex_root_full_path: PathBuf,
+        bepinex_log_output_file_full_path: PathBuf,
         bepinex_gui_csharp_cfg_full_path: PathBuf,
         target_process_id: Pid,
         log_socket_port_receiver: u16,
@@ -107,6 +108,7 @@ impl BepInExGUI {
             target_name,
             game_folder_full_path,
             bepinex_root_full_path,
+            bepinex_log_output_file_full_path,
             bepinex_gui_csharp_cfg_full_path,
             target_process_id: target_process_id,
             time_when_disclaimer_showed_up: None,
@@ -160,6 +162,7 @@ impl BepInExGUI {
             self.target_name.clone(),
             self.game_folder_full_path.clone(),
             self.bepinex_root_full_path.clone(),
+            self.bepinex_log_output_file_full_path.clone(),
         )));
         self.tabs.push(Box::new(ConsoleTab::new(
             self.mods.clone(),
@@ -167,6 +170,7 @@ impl BepInExGUI {
             self.target_process_id,
             self.game_folder_full_path.clone(),
             self.bepinex_root_full_path.clone(),
+            self.bepinex_log_output_file_full_path.clone(),
         )));
         self.tabs.push(Box::new(SettingsTab::new()));
     }
@@ -330,7 +334,7 @@ pub fn render_useful_buttons_footer(
     _ctx: &Context,
     game_folder_full_path: &PathBuf,
     bepinex_root_full_path: &PathBuf,
-    logs: &Rc<RefCell<Option<Vec<BepInExLog>>>>,
+    bepinex_log_output_file_full_path: &PathBuf,
     target_process_id: Pid,
 ) {
     ui.horizontal_centered(|ui| {
@@ -382,48 +386,27 @@ pub fn render_useful_buttons_footer(
             )
             .clicked()
         {
-            match ClipboardProvider::new() {
-                Ok(ctx) => {
-                    let mut clipboard: ClipboardContext = ctx;
-
-                    // check log file size, if its more than size limit, just zip it
-                    let log_file_path = bepinex_root_full_path.join("LogOutput.log");
-                    if let Ok(log_file_metadata) = fs::metadata(&log_file_path) {
-                        let file_size_bytes = log_file_metadata.len();
-                        const FIVE_MEGABYTES: u64 = 5000000;
-                        if file_size_bytes >= FIVE_MEGABYTES {
-                            if let Some(zip_file_path) = settings::get_tmp_zip_log_full_path() {
-                                match zip_log_file(&zip_file_path, &log_file_path) {
-                                    Ok(_) => {
-                                        // file is zipped, clipboard it
-                                        copy_files_to_clipboard(
-                                            vec![zip_file_path.into_os_string()],
-                                        )
-                                    }
-                                    Err(e) => {
-                                        tracing::error!("Failed zipping: {}", e.to_string());
-                                    }
-                                }
+            // check log file size, if its more than size limit, just zip it
+            if let Ok(log_file_metadata) = fs::metadata(&bepinex_log_output_file_full_path) {
+                let file_size_bytes = log_file_metadata.len();
+                const FIVE_MEGABYTES: u64 = 5000000;
+                if file_size_bytes >= FIVE_MEGABYTES {
+                    if let Some(zip_file_path) = settings::get_tmp_zip_log_full_path() {
+                        match zip_log_file(&zip_file_path, &bepinex_log_output_file_full_path) {
+                            Ok(_) => {
+                                // file is zipped, clipboard it
+                                copy_files_to_clipboard(vec![zip_file_path.into_os_string()])
                             }
-                        } else {
-                            let logs_borrow = logs.borrow();
-                            let logs = logs_borrow.as_ref().unwrap();
-                            let selected_logs_string: String = logs
-                                .into_iter()
-                                .map(|x| x.data.to_string())
-                                .collect::<Vec<String>>()
-                                .join("\n");
-
-                            match clipboard.set_contents(selected_logs_string) {
-                                Ok(_) => {}
-                                Err(err) => {
-                                    tracing::error!("Failed copying logs to clipboard: {}", err);
-                                }
+                            Err(e) => {
+                                tracing::error!("Failed zipping: {}", e.to_string());
                             }
                         }
                     }
+                } else {
+                    copy_files_to_clipboard(vec![bepinex_log_output_file_full_path
+                        .clone()
+                        .into_os_string()])
                 }
-                Err(_) => {}
             }
         }
 
@@ -471,6 +454,7 @@ pub struct DROPFILES {
     pub f_wide: BOOL,
 }
 
+#[cfg(windows)]
 fn copy_files_to_clipboard(entries: Vec<OsString>) {
     let mut clip_buf: Vec<u16> = vec![];
     for entry in &entries {
@@ -500,4 +484,9 @@ fn copy_files_to_clipboard(entries: Vec<OsString>) {
         SetClipboardData(CF_HDROP, h_mem);
         CloseClipboard();
     }
+}
+
+#[cfg(not(windows))]
+fn copy_files_to_clipboard(entries: Vec<OsString>) {
+    // todo
 }
