@@ -32,7 +32,6 @@ pub struct ConsoleTab {
     target_process_id: Pid,
     target_process_paused: bool,
     game_folder_full_path: PathBuf,
-    bepinex_root_full_path: PathBuf,
     bepinex_log_output_file_full_path: PathBuf,
     selected_index_in_mods_combo_box: usize,
     button_currently_down: bool,
@@ -47,7 +46,6 @@ impl ConsoleTab {
         logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
         target_process_id: Pid,
         game_folder_full_path: PathBuf,
-        bepinex_root_full_path: PathBuf,
         bepinex_log_output_file_full_path: PathBuf,
     ) -> Self {
         Self {
@@ -61,7 +59,6 @@ impl ConsoleTab {
             target_process_id,
             target_process_paused: false,
             game_folder_full_path,
-            bepinex_root_full_path,
             bepinex_log_output_file_full_path,
             selected_index_in_mods_combo_box: 0,
             button_currently_down: false,
@@ -228,7 +225,6 @@ impl ConsoleTab {
                 ui,
                 ctx,
                 &self.game_folder_full_path,
-                &self.bepinex_root_full_path,
                 &self.bepinex_log_output_file_full_path,
                 self.target_process_id,
             );
@@ -309,12 +305,14 @@ impl Tab for ConsoleTab {
 
                     ui.label(RichText::new("Log Filtering: ").font(FontId::proportional(20.0)));
                     let mods_combo_box = ComboBox::from_id_source("combo_box_mods_log_filter")
+                        .width(200.)
                         .show_index(
                             ui,
                             &mut self.selected_index_in_mods_combo_box,
                             mods.len(),
                             |i| mods[i].name.to_owned(),
                         );
+
                     if mods_combo_box.changed() {
                         if self.selected_index_in_mods_combo_box == 0 {
                             self.log_text_filter = "".to_string();
@@ -407,7 +405,7 @@ impl Tab for ConsoleTab {
                             ui.heading(
                                 r#"The console is meant to be used by mod developers.
                                 If any of your mods is malfunctioning and that you wish to receive help in the #tech-support channel of the discord:
-                                Please use the buttons below and use the "Copy Log to Clipboard" button for then simply pasting it in the #tech-support channel."#);
+                                Please use the buttons below and use the "Copy Log File" button, and drag and drop it in the #tech-support channel."#);
                             ui.style_mut().visuals.extreme_bg_color = if gui_config.dark_mode {
                                 colors::DARK_GRAY
                             } else {

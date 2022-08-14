@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sysinfo::{Pid, ProcessExt, SystemExt};
 
-use crate::egui_utils;
+use crate::path_utils;
 
 pub const URL: &str = "https://thunderstore.io/api/experimental/community/";
 
@@ -67,7 +67,7 @@ fn find_modding_discord_from_target_process_name(
 pub fn open_modding_discord(target_process_id: Pid) {
     match find_modding_discord_from_target_process_name(target_process_id) {
         Ok(discord_name) => {
-            egui_utils::open_folder(&PathBuf::from(discord_name));
+            path_utils::open_path_in_explorer(&PathBuf::from(discord_name));
         }
         Err(err) => {
             tracing::error!("Failed finding discord, {}", err);

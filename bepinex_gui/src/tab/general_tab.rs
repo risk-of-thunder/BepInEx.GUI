@@ -18,7 +18,6 @@ pub struct GeneralTab {
     logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
     target_name: String,
     game_folder_full_path: PathBuf,
-    bepinex_root_full_path: PathBuf,
     bepinex_log_output_file_full_path: PathBuf,
     target_process_id: Pid,
 }
@@ -30,7 +29,6 @@ impl GeneralTab {
         target_process_id: Pid,
         target_name: String,
         game_folder_full_path: PathBuf,
-        bepinex_root_full_path: PathBuf,
         bepinex_log_output_file_full_path: PathBuf,
     ) -> Self {
         Self {
@@ -39,7 +37,6 @@ impl GeneralTab {
             target_process_id,
             target_name,
             game_folder_full_path,
-            bepinex_root_full_path,
             bepinex_log_output_file_full_path,
         }
     }
@@ -50,7 +47,6 @@ impl GeneralTab {
                 ui,
                 ctx,
                 &self.game_folder_full_path,
-                &self.bepinex_root_full_path,
                 &self.bepinex_log_output_file_full_path,
                 self.target_process_id,
             );

@@ -3,9 +3,9 @@
 
 use eframe::egui::*;
 use eframe::*;
-use std::env;
 use std::fs::File;
 use std::sync::Mutex;
+use std::{env, panic};
 use sysinfo::Pid;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, Registry};
@@ -18,6 +18,7 @@ mod colors;
 mod egui_utils;
 mod log_receiver_thread;
 mod packet_protocol;
+mod path_utils;
 mod settings;
 mod tab;
 mod thunderstore_communities;
@@ -32,16 +33,14 @@ fn main() {
     let bepinex_version = &args[1];
     let target_name = &args[2];
     let game_folder_full_path = &args[3];
-    let bepinex_root_full_path = &args[4];
-    let bepinex_log_output_file_full_path = &args[5];
-    let bepinex_gui_csharp_cfg_full_path = &args[6];
-    let target_process_id = args[7].parse::<Pid>().unwrap();
-    let log_socket_port_receiver = args[8].parse::<u16>().unwrap();
+    let bepinex_log_output_file_full_path = &args[4];
+    let bepinex_gui_csharp_cfg_full_path = &args[5];
+    let target_process_id = args[6].parse::<Pid>().unwrap();
+    let log_socket_port_receiver = args[7].parse::<u16>().unwrap();
 
     let gui = bepinex_gui::BepInExGUI::new(
         target_name.into(),
         game_folder_full_path.into(),
-        bepinex_root_full_path.into(),
         bepinex_log_output_file_full_path.into(),
         bepinex_gui_csharp_cfg_full_path.into(),
         target_process_id,
@@ -84,6 +83,14 @@ fn init_logger() {
     } else {
         tracing_subscriber::fmt::init();
     }
+
+    panic::set_hook(Box::new(|panic_info| {
+        if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+            tracing::error!("panic occurred: {s:?}");
+        } else {
+            tracing::error!("panic occurred");
+        }
+    }));
 }
 
 fn check_args_and_fill_if_needed(args: &mut Vec<String>) {
@@ -92,21 +99,17 @@ fn check_args_and_fill_if_needed(args: &mut Vec<String>) {
         args.push("Risk of Rain 2".to_string()); // Target Process Name
         args.push("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2".to_string());
         args.push(
-            "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2\\BepInEx"
+            "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2\\BepInEx\\LogOutput.log"
                 .to_string(),
         );
         args.push(
             "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2\\BepInEx\\config\\BepInEx.GUI.cfg"
                 .to_string(),
         );
-        args.push(
-            "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2\\BepInEx\\LogOutput.log"
-                .to_string(),
-        );
         args.push("17584".to_string()); // Target Process Id
         args.push("27090".to_string()); // Socket port used for comm with the bep gui patcher
-    } else if args.len() != 9 {
-        tracing::error!("PROBLEM WITH ARGS {:?}", args);
+    } else if args.len() != 8 {
+        tracing::error!("PROBLEM WITH ARGS {:?} {:?}", args.len(), args);
         panic!("PROBLEM WITH ARGS {:?}", args);
     }
 }

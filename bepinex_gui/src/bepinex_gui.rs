@@ -9,21 +9,17 @@ use tab::general_tab::GeneralTab;
 use eframe::*;
 
 use eframe;
-use winapi::shared::minwindef::BOOL;
-use winapi::shared::windef::{HWND, POINT};
-use winapi::um::winuser::{
-    CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData, CF_HDROP,
-};
+use winapi::shared::minwindef::{BOOL, DWORD, LPARAM};
+use winapi::shared::windef::HWND;
+use winapi::um::processthreadsapi::GetCurrentProcessId;
+use winapi::um::winuser::{EnumWindows, GetWindowThreadProcessId, HWND_NOTOPMOST};
 use zip::write::FileOptions;
 
 use core::time;
-use std::ffi::OsString;
 use std::fs::File;
-use std::io::{BufReader, Write};
-use std::mem::size_of;
-use std::os::windows::prelude::OsStrExt;
+use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
-use std::ptr::copy_nonoverlapping;
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::channel;
 use std::sync::Arc;
@@ -38,13 +34,12 @@ use tab::Tab;
 use crate::bepinex_mod::BepInExMod;
 use crate::log_receiver_thread::LogReceiverThread;
 use crate::{bepinex_gui_config::BepInExGUIConfig, bepinex_log::BepInExLog, tab};
-use crate::{egui_utils, settings, thunderstore_communities};
+use crate::{egui_utils, path_utils, settings, thunderstore_communities};
 
 pub struct BepInExGUI {
     config: BepInExGUIConfig,
     target_name: String,
     game_folder_full_path: PathBuf,
-    bepinex_root_full_path: PathBuf,
     bepinex_log_output_file_full_path: PathBuf,
     bepinex_gui_csharp_cfg_full_path: PathBuf,
     target_process_id: Pid,
@@ -97,7 +92,6 @@ impl BepInExGUI {
     pub fn new(
         target_name: String,
         game_folder_full_path: PathBuf,
-        bepinex_root_full_path: PathBuf,
         bepinex_log_output_file_full_path: PathBuf,
         bepinex_gui_csharp_cfg_full_path: PathBuf,
         target_process_id: Pid,
@@ -107,7 +101,6 @@ impl BepInExGUI {
             config: Default::default(),
             target_name,
             game_folder_full_path,
-            bepinex_root_full_path,
             bepinex_log_output_file_full_path,
             bepinex_gui_csharp_cfg_full_path,
             target_process_id: target_process_id,
@@ -132,6 +125,8 @@ impl BepInExGUI {
         self.configure_fonts(&cc.egui_ctx);
 
         self.start_thread_exit_gui_if_target_process_not_alive(self.target_process_id);
+
+        self.start_thread_window_foreground_on_target_start(self.target_process_id);
 
         self.init_log_receiver(self.log_socket_port_receiver);
 
@@ -161,7 +156,6 @@ impl BepInExGUI {
             self.target_process_id,
             self.target_name.clone(),
             self.game_folder_full_path.clone(),
-            self.bepinex_root_full_path.clone(),
             self.bepinex_log_output_file_full_path.clone(),
         )));
         self.tabs.push(Box::new(ConsoleTab::new(
@@ -169,7 +163,6 @@ impl BepInExGUI {
             self.logs.clone(),
             self.target_process_id,
             self.game_folder_full_path.clone(),
-            self.bepinex_root_full_path.clone(),
             self.bepinex_log_output_file_full_path.clone(),
         )));
         self.tabs.push(Box::new(SettingsTab::new()));
@@ -282,6 +275,32 @@ setting to true the "Enables showing a console for log output." config option."#
         });
     }
 
+    #[cfg(windows)]
+    fn start_thread_window_foreground_on_target_start(&self, target_process_id: Pid) {
+        thread::spawn(move || -> io::Result<()> {
+            loop {
+                if check_current_process_in_front_of_target_process_window(target_process_id) {
+                    break;
+                }
+
+                thread::sleep(time::Duration::from_millis(500));
+            }
+
+            thread::spawn(|| -> io::Result<()> {
+                thread::sleep(time::Duration::from_millis(500));
+
+                set_topmost_current_process_window(false);
+
+                Ok(())
+            });
+
+            Ok(())
+        });
+    }
+
+    #[cfg(not(windows))]
+    fn start_thread_window_foreground_on_target_start(&self, target_process_id: Pid) {}
+
     fn render_header(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -317,6 +336,98 @@ setting to true the "Enables showing a console for log output." config option."#
     }
 }
 
+fn set_topmost_current_process_window(set_topmost: bool) {
+    use winapi::um::winuser::{SetWindowPos, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE};
+
+    unsafe {
+        static mut CURRENT_PROCESS_ID: u32 = 0;
+        CURRENT_PROCESS_ID = GetCurrentProcessId() as u32;
+
+        static mut SET_TOPMOST: bool = false;
+        SET_TOPMOST = set_topmost;
+
+        extern "system" fn enum_window(window: HWND, _: LPARAM) -> BOOL {
+            unsafe {
+                let mut proc_id: DWORD = 0 as DWORD;
+                let _ = GetWindowThreadProcessId(window, &mut proc_id as *mut DWORD);
+                if proc_id == CURRENT_PROCESS_ID {
+                    SetWindowPos(
+                        window,
+                        if SET_TOPMOST {
+                            HWND_TOPMOST
+                        } else {
+                            HWND_NOTOPMOST
+                        },
+                        0,
+                        0,
+                        0,
+                        0,
+                        SWP_NOMOVE | SWP_NOSIZE,
+                    );
+                }
+
+                true.into()
+            }
+        }
+
+        EnumWindows(Some(enum_window), 0 as LPARAM);
+    }
+}
+
+#[cfg(windows)]
+fn check_current_process_in_front_of_target_process_window(target_process_id_: Pid) -> bool {
+    unsafe {
+        static mut CURRENT_PROCESS_ID: u32 = 0;
+        CURRENT_PROCESS_ID = GetCurrentProcessId() as u32;
+
+        static mut TARGET_PROCESS_ID: u32 = 0;
+        TARGET_PROCESS_ID = std::mem::transmute_copy(&target_process_id_);
+
+        static mut GOT_CURRENT_PROC_WINDOW: bool = false;
+        GOT_CURRENT_PROC_WINDOW = false;
+        static mut GOT_TARGET_PROC_WINDOW: bool = false;
+        GOT_TARGET_PROC_WINDOW = false;
+        static mut GOT_RESULT: bool = false;
+
+        GOT_RESULT = false;
+        extern "system" fn enum_window(window: HWND, _: LPARAM) -> BOOL {
+            unsafe {
+                if GOT_RESULT {
+                    return true.into();
+                }
+
+                let mut proc_id: DWORD = 0 as DWORD;
+                let _ = GetWindowThreadProcessId(window, &mut proc_id as *mut DWORD);
+                if proc_id == TARGET_PROCESS_ID {
+                    let is_current_proc_in_front = GOT_CURRENT_PROC_WINDOW;
+                    if is_current_proc_in_front {
+                        GOT_RESULT = true;
+                    } else {
+                        GOT_TARGET_PROC_WINDOW = true;
+                    }
+                } else if proc_id == CURRENT_PROCESS_ID {
+                    let is_target_proc_in_front = GOT_TARGET_PROC_WINDOW;
+                    if is_target_proc_in_front {
+                        set_topmost_current_process_window(true);
+                        tracing::info!("Put bep gui window in front");
+                        GOT_RESULT = true;
+                    } else {
+                        GOT_CURRENT_PROC_WINDOW = true;
+                    }
+                }
+
+                true.into()
+            }
+        }
+
+        EnumWindows(Some(enum_window), 0 as LPARAM);
+
+        return GOT_CURRENT_PROC_WINDOW && GOT_RESULT;
+    }
+}
+#[cfg(not(windows))]
+fn is_current_process_in_front_of_target_process_window(&self, target_process_id: Pid) {}
+
 pub fn render_theme_button(gui_config: &mut BepInExGUIConfig, ui: &mut egui::Ui) {
     let theme_btn_text = if gui_config.dark_mode { "🌞" } else { "🌙" };
     let theme_btn_size = egui_utils::compute_text_size(ui, theme_btn_text, true, false, None);
@@ -333,20 +444,19 @@ pub fn render_useful_buttons_footer(
     ui: &mut Ui,
     _ctx: &Context,
     game_folder_full_path: &PathBuf,
-    bepinex_root_full_path: &PathBuf,
     bepinex_log_output_file_full_path: &PathBuf,
     target_process_id: Pid,
 ) {
     ui.horizontal_centered(|ui| {
-        const FONT_SIZE: f32 = 14.;
+        const FONT_SIZE: f32 = 18.;
         // let mut FONT_SIZE = 20. * (ui.available_width() / 900.);
 
-        let mut button_size = ui.available_size() / 16.;
-        let spacing = ui.available_width() / 16.;
+        let mut button_size = ui.available_size() / 5.;
+        let spacing = ui.available_width() / 8.;
         button_size.y += 25.;
 
         let placement_cursor = ui.cursor();
-        ui.add_space(spacing * 0.9);
+        ui.add_space(spacing * 0.5);
 
         if ui
             .add_sized(
@@ -357,60 +467,44 @@ pub fn render_useful_buttons_footer(
             )
             .clicked()
         {
-            egui_utils::open_folder(game_folder_full_path);
+            path_utils::open_path_in_explorer(game_folder_full_path);
         }
 
         ui.set_cursor(placement_cursor);
-        ui.add_space(spacing * 5.);
+        ui.add_space(spacing * 3.);
 
         if ui
             .add_sized(
                 button_size,
-                Button::new(RichText::new("Open Log Folder").font(FontId::proportional(FONT_SIZE))),
-            )
-            .clicked()
-        {
-            egui_utils::open_folder(bepinex_root_full_path);
-        }
-
-        ui.set_cursor(placement_cursor);
-        ui.add_space(spacing * 8.5);
-
-        if ui
-            .add_sized(
-                button_size,
-                Button::new(
-                    RichText::new("Copy Log to Clipboard").font(FontId::proportional(FONT_SIZE)),
-                ),
+                Button::new(RichText::new("Copy Log File").font(FontId::proportional(FONT_SIZE))),
             )
             .clicked()
         {
             // check log file size, if its more than size limit, just zip it
             if let Ok(log_file_metadata) = fs::metadata(&bepinex_log_output_file_full_path) {
                 let file_size_bytes = log_file_metadata.len();
-                const FIVE_MEGABYTES: u64 = 5000000;
-                if file_size_bytes >= FIVE_MEGABYTES {
-                    if let Some(zip_file_path) = settings::get_tmp_zip_log_full_path() {
-                        match zip_log_file(&zip_file_path, &bepinex_log_output_file_full_path) {
-                            Ok(_) => {
-                                // file is zipped, clipboard it
-                                copy_files_to_clipboard(vec![zip_file_path.into_os_string()])
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed zipping: {}", e.to_string());
-                            }
+                const ONE_MEGABYTE: u64 = 1000000;
+                if file_size_bytes >= ONE_MEGABYTE {
+                    let zip_file_full_path = bepinex_log_output_file_full_path
+                        .parent()
+                        .unwrap()
+                        .join("zipped_log.zip");
+                    match zip_log_file(&zip_file_full_path, &bepinex_log_output_file_full_path) {
+                        Ok(_) => {
+                            path_utils::highlight_path_in_explorer(&zip_file_full_path);
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed zipping: {}", e.to_string());
                         }
                     }
                 } else {
-                    copy_files_to_clipboard(vec![bepinex_log_output_file_full_path
-                        .clone()
-                        .into_os_string()])
+                    path_utils::highlight_path_in_explorer(bepinex_log_output_file_full_path);
                 }
             }
         }
 
         ui.set_cursor(placement_cursor);
-        ui.add_space(spacing * 13.);
+        ui.add_space(spacing * 5.5);
 
         if ui
             .add_sized(
@@ -437,55 +531,13 @@ fn zip_log_file<P: AsRef<Path>, P2: AsRef<Path>>(
         .compression_method(zip::CompressionMethod::Deflated)
         .unix_permissions(0o755);
 
-    let log_file = File::open(log_file_path)?;
     zip.start_file("LogOutput.log", options)?;
-    zip.write_all(BufReader::new(log_file).buffer())?;
+    let mut log_file_buffer = BufReader::new(File::open(log_file_path)?);
+    let mut zip_buf_writer = BufWriter::new(zip);
+    std::io::copy(&mut log_file_buffer, &mut zip_buf_writer)?;
 
-    zip.finish()?;
+    // zip.write_all()?;
+
+    // zip.finish()?;
     Ok(())
-}
-
-#[repr(C, packed(1))]
-pub struct DROPFILES {
-    pub p_files: u32,
-    pub pt: POINT,
-    pub f_nc: BOOL,
-    pub f_wide: BOOL,
-}
-
-#[cfg(windows)]
-fn copy_files_to_clipboard(entries: Vec<OsString>) {
-    let mut clip_buf: Vec<u16> = vec![];
-    for entry in &entries {
-        let mut result: Vec<u16> = entry.encode_wide().collect();
-        clip_buf.append(&mut result);
-        clip_buf.push(0);
-    }
-    clip_buf.push(0);
-    let p_files = size_of::<DROPFILES>();
-    let mut h_global = vec![0u8; clip_buf.len() * 2 + p_files];
-    let dropfiles: *mut DROPFILES = h_global.as_mut_ptr() as *mut DROPFILES;
-    let buf_ptr = clip_buf.as_ptr();
-    unsafe {
-        (*dropfiles).p_files = p_files as _;
-        (*dropfiles).f_wide = 1 as BOOL;
-        copy_nonoverlapping(
-            buf_ptr,
-            h_global.as_mut_ptr().offset(p_files as _) as *mut u16,
-            clip_buf.len(),
-        );
-        let h_mem = core::mem::transmute(h_global.as_mut_ptr());
-        OpenClipboard(0 as HWND);
-        EmptyClipboard();
-        CloseClipboard();
-
-        OpenClipboard(0 as HWND);
-        SetClipboardData(CF_HDROP, h_mem);
-        CloseClipboard();
-    }
-}
-
-#[cfg(not(windows))]
-fn copy_files_to_clipboard(entries: Vec<OsString>) {
-    // todo
 }
