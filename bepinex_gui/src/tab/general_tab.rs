@@ -1,61 +1,46 @@
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use crossbeam_channel::Receiver;
 
 use eframe::{
     egui::{self, CentralPanel, Context, Label, Layout, RichText, ScrollArea, TopBottomPanel},
+    emath::Align,
     epaint::FontId,
 };
-use sysinfo::Pid;
 
 use crate::{
-    bepinex_gui, bepinex_gui_config::BepInExGUIConfig, bepinex_log::BepInExLog,
-    bepinex_mod::BepInExMod, egui_utils,
+    bepinex_gui, bepinex_gui_config::BepInExGUIConfig,
+    bepinex_gui_init_config::BepInExGUIInitConfig, bepinex_mod::BepInExMod, egui_utils,
 };
 
 use super::Tab;
 
 pub struct GeneralTab {
-    mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
-    logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
-    target_name: String,
-    game_folder_full_path: PathBuf,
-    bepinex_log_output_file_full_path: PathBuf,
-    target_process_id: Pid,
+    mod_receiver: Receiver<BepInExMod>,
+    mods: Vec<BepInExMod>,
 }
 
 impl GeneralTab {
-    pub fn new(
-        mods: Rc<RefCell<Option<Vec<BepInExMod>>>>,
-        logs: Rc<RefCell<Option<Vec<BepInExLog>>>>,
-        target_process_id: Pid,
-        target_name: String,
-        game_folder_full_path: PathBuf,
-        bepinex_log_output_file_full_path: PathBuf,
-    ) -> Self {
+    pub fn new(mods_receiver: Receiver<BepInExMod>) -> Self {
         Self {
-            mods,
-            logs,
-            target_process_id,
-            target_name,
-            game_folder_full_path,
-            bepinex_log_output_file_full_path,
+            mod_receiver: mods_receiver,
+            mods: Vec::new(),
         }
     }
 
-    fn render_footer(&mut self, ctx: &Context) {
+    fn render_footer(&mut self, data: &BepInExGUIInitConfig, ctx: &Context) {
         TopBottomPanel::bottom("footer").show(ctx, |ui| {
             bepinex_gui::render_useful_buttons_footer(
                 ui,
                 ctx,
-                &self.game_folder_full_path,
-                &self.bepinex_log_output_file_full_path,
-                self.target_process_id,
+                &data.game_folder_full_path(),
+                &data.bepinex_log_output_file_full_path(),
+                data.target_process_id(),
             );
         });
     }
 
     fn render(&mut self, gui_config: &BepInExGUIConfig, ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
-            if self.logs.borrow_mut().as_mut().unwrap().is_empty() {
+            if self.mods.is_empty() {
                 ui.vertical_centered_justified(|ui| {
                     let loading_text = "Loading ⌛";
                     let text_size =
@@ -75,10 +60,17 @@ impl GeneralTab {
     }
 
     fn render_mods(&self, _gui_config: &BepInExGUIConfig, ui: &mut egui::Ui) {
-        let mods_borrow = self.mods.borrow();
-        let mods = mods_borrow.as_ref().unwrap().iter();
-        for mod_ in mods {
+        for mod_ in self.mods.as_slice() {
             ui.add(Label::new(RichText::new(mod_.to_string())));
+        }
+    }
+
+    fn update_mod_receiver(&mut self) {
+        match self.mod_receiver.try_recv() {
+            Ok(mod_) => {
+                self.mods.push(mod_);
+            }
+            Err(_) => {}
         }
     }
 }
@@ -88,14 +80,18 @@ impl Tab for GeneralTab {
         "General"
     }
 
-    fn update_top_panel(&mut self, gui_config: &mut BepInExGUIConfig, ui: &mut eframe::egui::Ui) {
-        let target_name = self.target_name.clone();
+    fn update_top_panel(
+        &mut self,
+        data: &BepInExGUIInitConfig,
+        gui_config: &mut BepInExGUIConfig,
+        ui: &mut eframe::egui::Ui,
+    ) {
         egui::menu::bar(ui, move |ui| {
             // controls
-            ui.with_layout(Layout::left_to_right(), |ui| {
+            ui.with_layout(Layout::left_to_right(Align::default()), |ui| {
                 let target_is_loading_text = format!(
                     "Modded {} is loading, you can close this window at any time.",
-                    target_name
+                    data.target_name()
                 );
                 ui.label(RichText::new(target_is_loading_text).font(FontId::proportional(20.0)));
 
@@ -103,19 +99,21 @@ impl Tab for GeneralTab {
             });
         });
 
-        let mods_borrow = self.mods.borrow();
-        let mods = mods_borrow.as_ref().unwrap();
-        let loaded_mods_text = format!("Loaded Mods: {}", (mods.len() - 1));
+        let loaded_mod_count = self.mods.len();
+        let loaded_mods_text = format!("Loaded Mods: {}", loaded_mod_count);
         ui.label(RichText::new(loaded_mods_text).font(FontId::proportional(20.0)));
     }
 
     fn update(
         &mut self,
+        data: &BepInExGUIInitConfig,
         gui_config: &mut BepInExGUIConfig,
         ctx: &eframe::egui::Context,
         _frame: &mut eframe::Frame,
     ) {
-        self.render_footer(ctx);
+        self.update_mod_receiver();
+
+        self.render_footer(data, ctx);
 
         self.render(gui_config, ctx);
     }

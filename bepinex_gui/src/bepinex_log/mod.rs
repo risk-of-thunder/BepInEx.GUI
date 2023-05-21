@@ -1,8 +1,15 @@
 use eframe::emath::Numeric;
+
+use serde::{Deserialize, Serialize};
 use strum::{Display, EnumCount, EnumIter};
 
+pub mod file;
+pub mod receiver;
+
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, Display, PartialEq, PartialOrd, EnumCount, EnumIter)]
+#[derive(
+    Debug, Clone, Copy, Display, PartialEq, PartialOrd, EnumCount, EnumIter, Serialize, Deserialize,
+)]
 #[repr(i32)]
 pub enum LogLevel {
     None = 0x0,
@@ -22,6 +29,7 @@ impl Numeric for LogLevel {
 
     const MAX: Self = LogLevel::All;
 
+    // this is needed for egui slider
     fn to_f64(self) -> f64 {
         match self {
             LogLevel::None => 0.0,
@@ -35,6 +43,7 @@ impl Numeric for LogLevel {
         }
     }
 
+    // this is needed for egui slider
     fn from_f64(num: f64) -> Self {
         match num {
             x if x >= 0.0 && x < 1.0 => LogLevel::None,
@@ -50,13 +59,21 @@ impl Numeric for LogLevel {
     }
 }
 
-pub struct BepInExLog {
-    pub level: LogLevel,
-    pub data: String,
+pub struct BepInExLogEntry {
+    level: LogLevel,
+    data: String,
 }
 
-impl BepInExLog {
+impl BepInExLogEntry {
     pub fn new(level: LogLevel, data: String) -> Self {
         Self { level, data }
+    }
+
+    pub fn level(&self) -> LogLevel {
+        self.level
+    }
+
+    pub fn data(&self) -> &str {
+        self.data.as_ref()
     }
 }

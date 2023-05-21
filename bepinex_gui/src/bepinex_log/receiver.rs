@@ -8,26 +8,30 @@ use std::io;
 
 use std::thread;
 
-use std::sync::mpsc::Sender;
+use crossbeam_channel::Sender;
 
-use crate::bepinex_log::BepInExLog;
+use crate::bepinex_log::BepInExLogEntry;
 use crate::bepinex_log::LogLevel;
-use crate::packet_protocol;
+use crate::bepinex_mod::BepInExMod;
+use crate::network::packet_protocol;
 
 #[derive(Clone)]
-pub struct LogReceiverThread {
+pub struct LogReceiver {
     log_socket_port_receiver: u16,
-    channel_sender: Sender<BepInExLog>,
+    log_sender: Sender<BepInExLogEntry>,
+    mod_sender: Sender<BepInExMod>,
 }
 
-impl LogReceiverThread {
+impl LogReceiver {
     pub fn new(
         log_socket_port_receiver: u16,
-        channel_sender: Sender<BepInExLog>,
-    ) -> LogReceiverThread {
-        LogReceiverThread {
-            log_socket_port_receiver: log_socket_port_receiver,
-            channel_sender: channel_sender,
+        log_sender: Sender<BepInExLogEntry>,
+        mod_sender: Sender<BepInExMod>,
+    ) -> LogReceiver {
+        LogReceiver {
+            log_socket_port_receiver,
+            log_sender,
+            mod_sender,
         }
     }
 
@@ -50,7 +54,7 @@ impl LogReceiverThread {
                                             packet_length,
                                         ) {
                                             Ok(packet_bytes) => {
-                                                inst.send_bepinex_log_packet_to_channel(
+                                                inst.make_log_entry_from_packet_data(
                                                     log_level,
                                                     &packet_bytes,
                                                 );
@@ -93,15 +97,26 @@ impl LogReceiverThread {
         });
     }
 
-    fn send_bepinex_log_packet_to_channel(
-        &self,
-        log_level: LogLevel,
-        string_packet_bytes: &Vec<u8>,
-    ) {
+    fn make_log_entry_from_packet_data(&self, log_level: LogLevel, string_packet_bytes: &Vec<u8>) {
         let log_string = packet_protocol::packet_bytes_to_utf8_string(&string_packet_bytes);
-        let bepinex_log = BepInExLog::new(log_level, log_string);
-        if let Err(err) = &self.channel_sender.send(bepinex_log) {
-            tracing::error!("error while sending utf8 string to channel: {}", err);
+
+        let log = BepInExLogEntry::new(log_level, log_string);
+
+        if log.data().contains("Loading [") {
+            let split: Vec<&str> = log.data().split('[').collect();
+            let mod_info_text = split[2];
+            let mod_version_start_index_ = mod_info_text.rfind(' ');
+            if let Some(mod_version_start_index) = mod_version_start_index_ {
+                let mod_name = &mod_info_text[0..mod_version_start_index];
+                let mod_version =
+                    &mod_info_text[mod_version_start_index + 1..mod_info_text.len() - 1];
+
+                self.mod_sender
+                    .send(BepInExMod::new(mod_name, mod_version))
+                    .unwrap();
+            }
         }
+
+        self.log_sender.send(log).unwrap();
     }
 }

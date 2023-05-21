@@ -8,20 +8,30 @@ use std::{
     },
 };
 
-use eframe::emath::*;
 use serde::*;
 
-use crate::settings;
+use crate::{bepinex_log::LogLevel, settings};
 
 #[derive(Serialize, Deserialize)]
 pub struct BepInExGUIConfig {
     pub dark_mode: bool,
-    pub window_pos: Pos2,
+
+    // For showing or not the disclaimer that explains how to report bugs / post log file in the discord
     pub first_time: bool,
+
+    // For showing or not the disclaimer that explains the console tab purpose
     pub first_time_console_disclaimer: bool,
+
+    // For remembering the last selected tab
     pub selected_tab_index: usize,
 
-    // those fields are saved through the regular bepinex config system
+    // For remembering the selected log level filter (Console tab)
+    pub log_level_filter: LogLevel,
+
+    // For remembering if the console should scroll to the bottom when a new log arrive
+    pub log_auto_scroll_to_bottom: bool,
+
+    // Skipped because those fields are saved through the regular bepinex config system
     #[serde(skip)]
     pub close_window_when_game_loaded: bool,
 
@@ -36,10 +46,11 @@ impl Default for BepInExGUIConfig {
     fn default() -> Self {
         Self {
             dark_mode: true,
-            window_pos: Default::default(),
             first_time: true,
             first_time_console_disclaimer: true,
             selected_tab_index: 0,
+            log_level_filter: LogLevel::All,
+            log_auto_scroll_to_bottom: true,
             close_window_when_game_loaded: false,
             close_window_when_game_closes: Arc::new(AtomicBool::new(true)),
             bepinex_gui_csharp_cfg_full_path: Default::default(),
@@ -58,7 +69,7 @@ impl BepInExGUIConfig {
         }
     }
 
-    pub fn read_csharp_cfg_file(&mut self) -> io::Result<()> {
+    pub fn read_bepinex_toml_cfg_file(&mut self) -> io::Result<()> {
         let file = File::open(&self.bepinex_gui_csharp_cfg_full_path)?;
         let reader = BufReader::new(file);
 
@@ -101,7 +112,7 @@ impl BepInExGUIConfig {
         Ok(())
     }
 
-    pub fn save_csharp_cfg_file(&self) -> io::Result<()> {
+    pub fn save_bepinex_toml_cfg_file(&self) -> io::Result<()> {
         let mut file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)

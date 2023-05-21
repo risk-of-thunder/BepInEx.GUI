@@ -1,11 +1,10 @@
 use std::sync::atomic::Ordering;
 
-use eframe::{
-    egui::{CentralPanel, Checkbox, Context, RichText},
-    epaint::FontId,
-};
+use eframe::egui::{CentralPanel, Context};
 
-use crate::bepinex_gui_config::BepInExGUIConfig;
+use crate::{
+    bepinex_gui_config::BepInExGUIConfig, bepinex_gui_init_config::BepInExGUIInitConfig, egui_utils,
+};
 
 use super::Tab;
 
@@ -21,41 +20,50 @@ impl SettingsTab {
             let mut button_size = ui.available_size() / 2.;
             button_size.x = ui.available_width();
 
-            if ui
-                .add_sized(
-                    button_size,
-                    Checkbox::new(
-                        &mut gui_config.close_window_when_game_loaded,
-                        RichText::new("Close Window When Game Loaded")
-                            .font(FontId::proportional(20.)),
-                    ),
-                )
-                .clicked()
-            {
-                _ = gui_config.save_csharp_cfg_file();
-            }
+            render_close_window_when_game_loaded_checkbox(ui, button_size, gui_config);
 
-            let close_window_when_game_closes = &mut gui_config
-                .close_window_when_game_closes
-                .load(Ordering::Relaxed);
-
-            if ui
-                .add_sized(
-                    button_size,
-                    Checkbox::new(
-                        close_window_when_game_closes,
-                        RichText::new("Close Window When Game Closes")
-                            .font(FontId::proportional(20.)),
-                    ),
-                )
-                .clicked()
-            {
-                gui_config
-                    .close_window_when_game_closes
-                    .store(*close_window_when_game_closes, Ordering::Relaxed);
-                _ = gui_config.save_csharp_cfg_file();
-            }
+            render_close_window_when_game_closes_checkbox(gui_config, ui, button_size);
         });
+    }
+}
+
+fn render_close_window_when_game_loaded_checkbox(
+    ui: &mut eframe::egui::Ui,
+    button_size: eframe::epaint::Vec2,
+    gui_config: &mut BepInExGUIConfig,
+) {
+    if egui_utils::checkbox(
+        &mut gui_config.close_window_when_game_loaded,
+        "Close Window When Game Loaded",
+        ui,
+        button_size,
+        20.,
+    ) {
+        _ = gui_config.save_bepinex_toml_cfg_file();
+    }
+}
+
+fn render_close_window_when_game_closes_checkbox(
+    gui_config: &mut BepInExGUIConfig,
+    ui: &mut eframe::egui::Ui,
+    button_size: eframe::epaint::Vec2,
+) {
+    let close_window_when_game_closes = &mut gui_config
+        .close_window_when_game_closes
+        .load(Ordering::Relaxed);
+
+    if egui_utils::checkbox(
+        close_window_when_game_closes,
+        "Close Window When Game Closes",
+        ui,
+        button_size,
+        20.,
+    ) {
+        gui_config
+            .close_window_when_game_closes
+            .store(*close_window_when_game_closes, Ordering::Relaxed);
+
+        _ = gui_config.save_bepinex_toml_cfg_file();
     }
 }
 
@@ -64,11 +72,17 @@ impl Tab for SettingsTab {
         "Settings"
     }
 
-    fn update_top_panel(&mut self, _gui_config: &mut BepInExGUIConfig, _ui: &mut eframe::egui::Ui) {
+    fn update_top_panel(
+        &mut self,
+        _data: &BepInExGUIInitConfig,
+        _gui_config: &mut BepInExGUIConfig,
+        _ui: &mut eframe::egui::Ui,
+    ) {
     }
 
     fn update(
         &mut self,
+        _data: &BepInExGUIInitConfig,
         gui_config: &mut BepInExGUIConfig,
         ctx: &eframe::egui::Context,
         _frame: &mut eframe::Frame,

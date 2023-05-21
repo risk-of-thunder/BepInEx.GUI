@@ -1,115 +1,49 @@
-// Uncomment for disabling console
+// Comment for enabling console
 #![windows_subsystem = "windows"]
 
+use bepinex_gui_init_config::BepInExGUIInitConfig;
 use eframe::egui::*;
 use eframe::*;
-use std::fs::File;
-use std::sync::Mutex;
-use std::{env, panic};
-use sysinfo::Pid;
-use tracing_subscriber::prelude::*;
-use tracing_subscriber::{fmt, Registry};
+use std::env;
 
 mod bepinex_gui;
 mod bepinex_gui_config;
+mod bepinex_gui_init_config;
 mod bepinex_log;
 mod bepinex_mod;
 mod colors;
 mod egui_utils;
-mod log_receiver_thread;
-mod packet_protocol;
-mod path_utils;
+mod file_explorer_utils;
+mod internal_logger;
+mod network;
+mod panic_handler;
+mod process;
 mod settings;
 mod tab;
-mod thunderstore_communities;
+mod thunderstore;
+mod window;
 
 fn main() {
-    init_logger();
+    internal_logger::init();
 
-    let mut args: Vec<String> = env::args().collect();
+    panic_handler::init();
 
-    check_args_and_fill_if_needed(&mut args);
-
-    let bepinex_version = &args[1];
-    let target_name = &args[2];
-    let game_folder_full_path = &args[3];
-    let bepinex_log_output_file_full_path = &args[4];
-    let bepinex_gui_csharp_cfg_full_path = &args[5];
-    let target_process_id = args[6].parse::<Pid>().unwrap();
-    let log_socket_port_receiver = args[7].parse::<u16>().unwrap();
+    let args: Vec<String> = env::args().collect();
 
     let gui = bepinex_gui::BepInExGUI::new(
-        target_name.into(),
-        game_folder_full_path.into(),
-        bepinex_log_output_file_full_path.into(),
-        bepinex_gui_csharp_cfg_full_path.into(),
-        target_process_id,
-        log_socket_port_receiver,
+        BepInExGUIInitConfig::from(&args).unwrap_or_else(BepInExGUIInitConfig::default),
     );
 
-    let mut win_option = NativeOptions::default();
-    win_option.initial_window_size = Some(Vec2::new(993., 519.));
-    win_option.initial_window_pos_centered = true;
-    win_option.window_title =
-        Some(settings::APP_NAME.to_string() + " " + bepinex_version + " - " + target_name);
+    let mut window_option = NativeOptions::default();
+    window_option.initial_window_size = Some(Vec2::new(993., 519.));
+    window_option.initial_centered = true;
 
-    eframe::run_native(
+    match eframe::run_native(
         settings::APP_NAME,
-        win_option,
+        window_option,
         Box::new(|cc| Box::new(gui.init(cc))),
-    );
-}
-
-fn init_logger() {
-    if let Some(log_file_path) = settings::get_log_file_full_path() {
-        if let Ok(file) = File::create(log_file_path) {
-            let subscriber = Registry::default()
-                .with(
-                    fmt::Layer::default()
-                        .with_writer(Mutex::new(file))
-                        .with_ansi(false)
-                        .with_line_number(true),
-                )
-                .with(
-                    fmt::Layer::default()
-                        .with_writer(std::io::stdout)
-                        .with_line_number(true),
-                );
-
-            let _ = tracing::subscriber::set_global_default(subscriber);
-        } else {
-            tracing_subscriber::fmt::init();
-        }
-    } else {
-        tracing_subscriber::fmt::init();
-    }
-
-    panic::set_hook(Box::new(|panic_info| {
-        if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
-            tracing::error!("panic occurred: {s:?}");
-        } else {
-            tracing::error!("panic occurred");
-        }
-    }));
-}
-
-fn check_args_and_fill_if_needed(args: &mut Vec<String>) {
-    if args.len() == 1 {
-        args.push("5.4.19".to_string()); // BepInEx Version String
-        args.push("Risk of Rain 2".to_string()); // Target Process Name
-        args.push("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2".to_string());
-        args.push(
-            "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2\\BepInEx\\LogOutput.log"
-                .to_string(),
-        );
-        args.push(
-            "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2\\BepInEx\\config\\BepInEx.GUI.cfg"
-                .to_string(),
-        );
-        args.push("17584".to_string()); // Target Process Id
-        args.push("27090".to_string()); // Socket port used for comm with the bep gui patcher
-    } else if args.len() != 8 {
-        tracing::error!("PROBLEM WITH ARGS {:?} {:?}", args.len(), args);
-        panic!("PROBLEM WITH ARGS {:?}", args);
+    ) {
+        Ok(_) => {}
+        Err(res) => tracing::error!("{:?}", res),
     }
 }

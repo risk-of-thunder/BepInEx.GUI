@@ -6,6 +6,6 @@ members = [
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
-lto = true
-codegen-units = 1
-panic = "abort"
+lto = true # perform "fat" LTO which attempts to perform optimizations across all crates within the dependency graph.
+codegen-units = 1 # improve the performance of generated code, but may be slower to compile.
+panic = "abort" # dont unwind, dont care
