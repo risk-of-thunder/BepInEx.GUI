@@ -146,12 +146,12 @@ impl ConsoleTab {
         let is_log_selection_button_down = self.log_selection.is_log_selection_button_down(ui);
 
         let mut i = 0;
-        for log in &self.logs {
+        for log in &mut self.logs {
             if log.level() > gui_config.log_level_filter {
                 continue;
             }
 
-            if !self.does_log_match_text_filter(log) {
+            if !ConsoleTab::does_log_match_text_filter(&self.filter.text, log) {
                 continue;
             }
 
@@ -166,9 +166,13 @@ impl ConsoleTab {
                 bepinex_log::LogLevel::All => info_log_color,
             };
 
+            let is_selected = i >= self.log_selection.smallest_index_of_hovered_log
+                && i <= self.log_selection.biggest_index_of_hovered_log;
+
+            log.is_selected = is_selected;
+
             let ui_log_entry = ui.add(SelectableLabel::new(
-                i >= self.log_selection.smallest_index_of_hovered_log
-                    && i <= self.log_selection.biggest_index_of_hovered_log,
+                is_selected,
                 RichText::new(log.data()).color(log_color),
             ));
 
@@ -216,26 +220,16 @@ impl ConsoleTab {
             match ClipboardProvider::new() {
                 Ok(ctx_) => {
                     let mut ctx: ClipboardContext = ctx_;
-                    let (start_index, end_index) =
-                        if self.log_selection.first_index_of_log_that_is_selected
-                            < self.log_selection.biggest_index_of_hovered_log
-                        {
-                            (
-                                self.log_selection.first_index_of_log_that_is_selected as usize,
-                                self.log_selection.biggest_index_of_hovered_log as usize,
-                            )
-                        } else {
-                            (
-                                self.log_selection.smallest_index_of_hovered_log as usize,
-                                self.log_selection.first_index_of_log_that_is_selected as usize,
-                            )
-                        };
 
-                    let selected_logs: Vec<String> = self.logs[start_index..end_index + 1]
+                    let selected_logs: Vec<String> = self
+                        .logs
                         .iter()
+                        .filter(|x| x.is_selected)
                         .map(|x| x.data().to_string())
                         .collect();
+
                     let selected_logs_string = selected_logs.join("\n");
+
                     match ctx.set_contents(selected_logs_string) {
                         Ok(_) => {}
                         Err(err) => {
@@ -248,12 +242,15 @@ impl ConsoleTab {
         }
     }
 
-    fn does_log_match_text_filter(&self, log: &bepinex_log::BepInExLogEntry) -> bool {
-        if !self.filter.text.is_empty() {
+    fn does_log_match_text_filter(
+        text_filter: &String,
+        log: &bepinex_log::BepInExLogEntry,
+    ) -> bool {
+        if !text_filter.is_empty() {
             if !log
                 .data()
                 .to_lowercase()
-                .contains(&self.filter.text.to_lowercase())
+                .contains(&text_filter.to_lowercase())
             {
                 return false;
             }

@@ -62,11 +62,16 @@ impl Numeric for LogLevel {
 pub struct BepInExLogEntry {
     level: LogLevel,
     data: String,
+    pub is_selected: bool,
 }
 
 impl BepInExLogEntry {
     pub fn new(level: LogLevel, data: String) -> Self {
-        Self { level, data }
+        Self {
+            level,
+            data,
+            is_selected: false,
+        }
     }
 
     pub fn level(&self) -> LogLevel {
