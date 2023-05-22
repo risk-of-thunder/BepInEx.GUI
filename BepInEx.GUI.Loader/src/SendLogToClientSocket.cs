@@ -11,13 +11,17 @@ internal class SendLogToClientSocket : ILogListener
 
     private readonly Thread _thread;
 
+    private readonly object _queueLock = new();
     private readonly Queue<LogEventArgs> _logQueue = new();
-    private readonly ManualResetEvent _signal = new(false);
 
-    internal static bool Stop;
+    private bool _isDisposed = false;
+
+    internal static SendLogToClientSocket Instance { get; private set; }
 
     internal SendLogToClientSocket(int freePort)
     {
+        Instance = this;
+
         _freePort = freePort;
 
         _thread = new Thread(() =>
@@ -33,7 +37,7 @@ internal class SendLogToClientSocket : ILogListener
                 Log.Info($"[SendLogToClient] Accepting Socket.");
                 var clientSocket = listener.AcceptSocket();
 
-                if (Stop)
+                if (_isDisposed)
                 {
                     break;
                 }
@@ -49,16 +53,18 @@ internal class SendLogToClientSocket : ILogListener
     {
         while (true)
         {
-            if (Stop)
+            if (_isDisposed)
             {
                 break;
             }
 
-            _signal.WaitOne();
-
             while (_logQueue.Count > 0)
             {
-                var log = _logQueue.Peek();
+                LogEventArgs log;
+                lock (_queueLock)
+                {
+                    log = _logQueue.Peek();
+                }
                 var logPacket = new LogPacket(log);
 
                 try
@@ -71,10 +77,11 @@ internal class SendLogToClientSocket : ILogListener
                     return;
                 }
 
-                _ = _logQueue.Dequeue();
+                lock (_queueLock)
+                {
+                    _ = _logQueue.Dequeue();
+                }
             }
-
-            _signal.Reset();
         }
     }
 
@@ -85,14 +92,16 @@ internal class SendLogToClientSocket : ILogListener
 
     internal void StoreLog(LogEventArgs eventArgs)
     {
-        _logQueue.Enqueue(eventArgs);
-        _signal.Set();
+        lock (_queueLock)
+        {
+            _logQueue.Enqueue(eventArgs);
+        }
     }
 
     private bool _gotFirstLog = false;
     public void LogEvent(object sender, LogEventArgs eventArgs)
     {
-        if (Stop)
+        if (_isDisposed)
         {
             return;
         }

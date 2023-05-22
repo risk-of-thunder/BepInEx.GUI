@@ -142,17 +142,14 @@ internal static class Patcher
     // Bad and hacky way to retrieve the correct log file path
     private static string GetLogOutputFilePath()
     {
-        var logOutputLogFilePath = "";
-
-        foreach (var item in Logger.Listeners)
+        foreach (var logListener in Logger.Listeners)
         {
-            if (item is DiskLogListener d)
+            if (logListener is DiskLogListener diskLogListener)
             {
-                logOutputLogFilePath = d.FileFullPath;
-                break;
+                return diskLogListener.FileFullPath;
             }
         }
 
-        return logOutputLogFilePath;
+        return "";
     }
 }

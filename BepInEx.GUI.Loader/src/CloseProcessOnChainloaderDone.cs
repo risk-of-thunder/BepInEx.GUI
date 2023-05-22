@@ -5,7 +5,7 @@ namespace BepInEx.GUI.Loader;
 
 public class CloseProcessOnChainloaderDone : ILogListener
 {
-    private bool Disposed;
+    private bool _disposed;
 
     private Process _process;
 
@@ -13,12 +13,12 @@ public class CloseProcessOnChainloaderDone : ILogListener
 
     public void Dispose()
     {
-        Disposed = true;
+        _disposed = true;
     }
 
     public void LogEvent(object sender, LogEventArgs eventArgs)
     {
-        if (Disposed)
+        if (_disposed)
         {
             return;
         }
@@ -46,7 +46,7 @@ public class CloseProcessOnChainloaderDone : ILogListener
         }
         finally
         {
-            SendLogToClientSocket.Stop = true;
+            SendLogToClientSocket.Instance.Dispose();
             Dispose();
         }
     }
