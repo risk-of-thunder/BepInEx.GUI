@@ -60,7 +60,7 @@ impl Default for BepInExGUIConfig {
 
 impl BepInExGUIConfig {
     #[allow(dead_code)]
-    pub fn get_file_full_path() -> Option<PathBuf> {
+    pub fn get_app_ron_file_full_path() -> Option<PathBuf> {
         if let Some(proj_dirs) = directories_next::ProjectDirs::from("", "", settings::APP_NAME) {
             let data_dir = proj_dirs.data_dir().to_path_buf();
             Some(data_dir.join("app.ron"))

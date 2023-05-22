@@ -11,8 +11,15 @@ use sysinfo::ProcessExt;
 use sysinfo::SystemExt;
 use winapi::um::winnt::HANDLE;
 use winapi::{
-    shared::minwindef::DWORD,
-    um::tlhelp32::{TH32CS_SNAPTHREAD, THREADENTRY32},
+    shared::{
+        minwindef::{BOOL, DWORD, LPARAM},
+        windef::HWND,
+    },
+    um::{
+        processthreadsapi::GetCurrentProcessId,
+        tlhelp32::{TH32CS_SNAPTHREAD, THREADENTRY32},
+        winuser::{EnumWindows, GetWindowThreadProcessId, IsHungAppWindow},
+    },
 };
 
 #[cfg(windows)]
@@ -98,12 +105,12 @@ pub(crate) fn suspend(target_process_id: Pid) -> bool {
 }
 
 pub(crate) fn spawn_thread_is_process_dead(
-    mut sys: sysinfo::System,
     target_process_id: Pid,
     should_check: Arc<AtomicBool>,
     out_true_when_process_is_dead: Arc<AtomicBool>,
 ) {
     thread::spawn(move || -> io::Result<()> {
+        let mut sys = sysinfo::System::new_all();
         loop {
             if !sys.refresh_process(target_process_id) && should_check.load(Ordering::Relaxed) {
                 break;
@@ -112,6 +119,7 @@ pub(crate) fn spawn_thread_is_process_dead(
             thread::sleep(time::Duration::from_millis(2000));
         }
 
+        tracing::info!("Target process is dead, setting out_true_when_process_is_dead");
         out_true_when_process_is_dead.store(true, Ordering::Relaxed);
 
         Ok(())
@@ -124,4 +132,62 @@ pub fn kill(target_process_id: Pid, callback: impl FnOnce()) {
         proc.kill();
         callback();
     }
+}
+
+#[cfg(windows)]
+pub(crate) fn spawn_thread_check_if_process_is_hung(
+    callback: impl Fn() + std::marker::Send + 'static,
+) {
+    thread::spawn(move || -> io::Result<()> {
+        unsafe {
+            static mut CURRENT_PROCESS_ID: u32 = 0;
+            CURRENT_PROCESS_ID = GetCurrentProcessId() as u32;
+
+            static mut GOT_RESULT: bool = false;
+
+            static mut WINDOW_HANDLE: HWND = 0 as _;
+
+            GOT_RESULT = false;
+            extern "system" fn enum_window(window: HWND, _: LPARAM) -> BOOL {
+                unsafe {
+                    if GOT_RESULT {
+                        return true.into();
+                    }
+
+                    let mut proc_id: DWORD = 0 as DWORD;
+                    let _ = GetWindowThreadProcessId(window, &mut proc_id as *mut DWORD);
+                    if proc_id == CURRENT_PROCESS_ID {
+                        WINDOW_HANDLE = window;
+                    }
+
+                    true.into()
+                }
+            }
+
+            EnumWindows(Some(enum_window), 0 as LPARAM);
+
+            let mut i = 0;
+            loop {
+                if IsHungAppWindow(WINDOW_HANDLE) == 1 {
+                    i += 1;
+
+                    if i == 5 {
+                        callback();
+                        tracing::info!("callback called!");
+                        return Ok(());
+                    }
+                }
+
+                thread::sleep(time::Duration::from_millis(1000));
+            }
+        }
+    });
+}
+
+#[cfg(not(windows))]
+pub(crate) fn spawn_thread_check_if_process_is_hung(
+    target_process_id: Pid,
+    should_check: Arc<AtomicBool>,
+    out_true_when_process_is_dead: Arc<AtomicBool>,
+) {
 }

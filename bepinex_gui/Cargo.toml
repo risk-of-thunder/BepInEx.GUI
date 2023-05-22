@@ -25,3 +25,10 @@ strum = { version = "0.24.1", features = ["derive"] }
 zip = "0.6.6"
 sysinfo = "0.29.0"
 crossbeam-channel = "0.5.8"
+
+# all of this is taken from https://github.com/johnthagen/min-sized-rust
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+lto = true # perform "fat" LTO which attempts to perform optimizations across all crates within the dependency graph.
+codegen-units = 1 # improve the performance of generated code, but may be slower to compile.
+panic = "abort" # dont unwind, dont care

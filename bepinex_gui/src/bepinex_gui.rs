@@ -1,44 +1,55 @@
+use sysinfo::Pid;
+
+use eframe::{self, *};
 use eframe::{egui::*, CreationContext};
-use sysinfo::{Pid, SystemExt};
 
-use eframe::*;
-
-use eframe;
-
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::SystemTime;
+use std::process::{exit, Command};
+use std::{env, fs};
+use std::{
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::SystemTime,
+};
 
 use crossbeam_channel::Receiver;
 
-use tab::console_tab::ConsoleTab;
-use tab::general_tab::GeneralTab;
-use tab::settings_tab::SettingsTab;
-use tab::Tab;
+use tab::{console_tab::ConsoleTab, general_tab::GeneralTab, settings_tab::SettingsTab, Tab};
 
-use crate::bepinex_log::BepInExLogEntry;
-use crate::bepinex_mod::BepInExMod;
-use crate::process;
 use crate::{
-    bepinex_gui_config::BepInExGUIConfig, bepinex_gui_init_config::BepInExGUIInitConfig,
-    bepinex_log, bepinex_log::receiver::LogReceiver, egui_utils, file_explorer_utils, settings,
-    tab, thunderstore, window,
+    bepinex_gui_config::BepInExGUIConfig,
+    bepinex_gui_init_config::BepInExGUIInitConfig,
+    bepinex_log::{self, receiver::LogReceiver, BepInExLogEntry},
+    bepinex_mod::BepInExMod,
+    egui_utils, file_explorer_utils, process, settings, tab, thunderstore, window,
 };
+
+struct Disclaimer {
+    pub first_time_showing_console_disclaimer: bool,
+    pub time_when_disclaimer_showed_up: Option<SystemTime>,
+}
 
 pub struct BepInExGUI {
     init_config: BepInExGUIInitConfig,
     config: BepInExGUIConfig,
-    first_time_showing_console_disclaimer: bool,
-    time_when_disclaimer_showed_up: Option<SystemTime>,
+
+    disclaimer: Disclaimer,
+
     should_exit_app: Arc<AtomicBool>,
+
     tabs: Vec<Box<dyn Tab>>,
+
     log_receiver_thread: Option<LogReceiver>,
+
     is_window_title_set: bool,
 }
 
 impl App for BepInExGUI {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+        // Ideally this would be done in a init function, not constantly checked in an update function
+        // L from eframe
         if !self.is_window_title_set {
             frame.set_window_title(&self.init_config.window_title());
             self.is_window_title_set = true;
@@ -81,8 +92,10 @@ impl BepInExGUI {
         Self {
             init_config,
             config: Default::default(),
-            first_time_showing_console_disclaimer: true,
-            time_when_disclaimer_showed_up: None,
+            disclaimer: Disclaimer {
+                first_time_showing_console_disclaimer: true,
+                time_when_disclaimer_showed_up: None,
+            },
             should_exit_app: Arc::new(AtomicBool::new(false)),
             tabs: vec![],
             log_receiver_thread: None,
@@ -100,6 +113,8 @@ impl BepInExGUI {
         self.start_thread_exit_gui_if_target_process_not_alive(
             self.init_config.target_process_id(),
         );
+
+        spawn_thread_reset_bepgui_if_window_hang();
 
         window::window_topmost_on_target_start::init(self.init_config.target_process_id());
 
@@ -152,12 +167,12 @@ If you notice issues with a mod while playing:
 For mod developers that like the old conhost console, you can enable it back by opening the BepInEx/config/BepInEx.cfg and 
 setting to true the "Enables showing a console for log output." config option."#).font(FontId::proportional(20.0))).wrap(true));
 
-            if self.first_time_showing_console_disclaimer {
-                self.time_when_disclaimer_showed_up = Some(SystemTime::now());
-                self.first_time_showing_console_disclaimer = false;
+            if self.disclaimer.first_time_showing_console_disclaimer {
+                self.disclaimer.time_when_disclaimer_showed_up = Some(SystemTime::now());
+                self.disclaimer.first_time_showing_console_disclaimer = false;
             }
 
-            if let Ok(_elapsed) = self.time_when_disclaimer_showed_up.unwrap().elapsed() {
+            if let Ok(_elapsed) = self.disclaimer.time_when_disclaimer_showed_up.unwrap().elapsed() {
                 let elapsed = _elapsed.as_secs() as i64;
                 const NEEDED_TIME_BEFORE_CLOSABLE:i64 = 9;
                 let can_close = elapsed > NEEDED_TIME_BEFORE_CLOSABLE;
@@ -178,7 +193,7 @@ setting to true the "Enables showing a console for log output." config option."#
         let mut font_def = FontDefinitions::default();
         font_def.font_data.insert(
             "MesloLGS".to_string(),
-            FontData::from_static(include_bytes!("../../assets/fonts/MesloLGS_NF_Regular.ttf")),
+            FontData::from_static(include_bytes!("../assets/fonts/MesloLGS_NF_Regular.ttf")),
         );
 
         font_def
@@ -191,17 +206,11 @@ setting to true the "Enables showing a console for log output." config option."#
     }
 
     fn start_thread_exit_gui_if_target_process_not_alive(&self, target_process_id: Pid) {
-        let sys = sysinfo::System::new_all();
-
-        let close_window_when_game_closes = self.config.close_window_when_game_closes.clone();
-        let should_exit_app = self.should_exit_app.clone();
-
         process::spawn_thread_is_process_dead(
-            sys,
             target_process_id,
-            close_window_when_game_closes,
-            should_exit_app,
-        );
+            self.config.close_window_when_game_closes.clone(),
+            self.should_exit_app.clone(),
+        )
     }
 
     fn render_header(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
@@ -241,6 +250,40 @@ setting to true the "Enables showing a console for log output." config option."#
             }
         });
     }
+}
+
+// Bad serialized app settings can sometimes make
+// the gui window not respond
+// bandaid fix that call winapi for checking if the window hung
+// and reset the process with a cleaned settings file if so
+fn spawn_thread_reset_bepgui_if_window_hang() {
+    process::spawn_thread_check_if_process_is_hung(|| {
+        if let Some(app_ron_file_path) = BepInExGUIConfig::get_app_ron_file_full_path() {
+            let current_exe =
+                env::current_exe().expect("Failed to retrieve current executable path");
+
+            let args: Vec<String> = env::args().collect();
+
+            let mut command = Command::new(current_exe);
+            command.args(args[1..].iter());
+
+            match fs::remove_file(app_ron_file_path) {
+                Ok(_) => {}
+                Err(err) => {
+                    tracing::error!("{}", err);
+                }
+            }
+
+            match command.spawn() {
+                Ok(_) => {
+                    exit(0);
+                }
+                Err(err) => {
+                    tracing::error!("{}", err);
+                }
+            }
+        }
+    });
 }
 
 pub fn render_theme_button(gui_config: &mut BepInExGUIConfig, ui: &mut egui::Ui) {
