@@ -28,6 +28,8 @@ impl GeneralTab {
 
     fn render_footer(&mut self, data: &BepInExGUIInitConfig, ctx: &Context) {
         TopBottomPanel::bottom("footer").show(ctx, |ui| {
+            ui.add_space(25.0);
+
             bepinex_gui::render_useful_buttons_footer(
                 ui,
                 ctx,
@@ -83,7 +85,7 @@ impl Tab for GeneralTab {
     fn update_top_panel(
         &mut self,
         data: &BepInExGUIInitConfig,
-        gui_config: &mut BepInExGUIConfig,
+        _gui_config: &mut BepInExGUIConfig,
         ui: &mut eframe::egui::Ui,
     ) {
         egui::menu::bar(ui, move |ui| {
@@ -94,8 +96,6 @@ impl Tab for GeneralTab {
                     data.target_name()
                 );
                 ui.label(RichText::new(target_is_loading_text).font(FontId::proportional(20.0)));
-
-                bepinex_gui::render_theme_button(gui_config, ui);
             });
         });
 

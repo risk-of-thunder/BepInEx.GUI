@@ -14,6 +14,9 @@ use crate::{bepinex_log::LogLevel, settings};
 
 #[derive(Serialize, Deserialize)]
 pub struct BepInExGUIConfig {
+    #[serde(skip)]
+    pub theme_just_changed: bool,
+
     pub dark_mode: bool,
 
     // For showing or not the disclaimer that explains how to report bugs / post log file in the discord
@@ -45,6 +48,7 @@ pub struct BepInExGUIConfig {
 impl Default for BepInExGUIConfig {
     fn default() -> Self {
         Self {
+            theme_just_changed: true,
             dark_mode: true,
             first_time: true,
             first_time_console_disclaimer: true,

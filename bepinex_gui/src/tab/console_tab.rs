@@ -1,10 +1,10 @@
 use crate::{
-    bepinex_gui,
+    bepinex_gui::{self},
     bepinex_gui_config::BepInExGUIConfig,
     bepinex_gui_init_config::BepInExGUIInitConfig,
     bepinex_log::{self, BepInExLogEntry, LogLevel},
     bepinex_mod::BepInExMod,
-    colors, egui_utils, process,
+    egui_utils, process,
 };
 use clipboard::*;
 use crossbeam_channel::Receiver;
@@ -266,6 +266,9 @@ impl ConsoleTab {
         ctx: &Context,
     ) {
         TopBottomPanel::bottom("footer").show(ctx, |ui| {
+            ui.add_space(2.0);
+            ui.label(RichText::new("Log Level Filtering: ").font(FontId::proportional(15.0)));
+
             let log_level_text = gui_config.log_level_filter.to_string();
             ui.add(
                 Slider::new(
@@ -293,17 +296,13 @@ impl ConsoleTab {
     ) {
         CentralPanel::default().show(ctx, |_| {
                 Window::new("Console Disclaimer")
+                    .collapsible(false)
                     .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
                     .show(ctx, |ui| {
                         ui.heading(
                             r#"The console is meant to be used by mod developers.
                                 If any of your mods is malfunctioning and that you wish to receive help in the #tech-support channel of the discord:
                                 Please use the buttons below and use the "Copy Log File" button, and drag and drop it in the #tech-support channel."#);
-                        ui.style_mut().visuals.extreme_bg_color = if gui_config.dark_mode {
-                            colors::DARK_GRAY
-                        } else {
-                            colors::LIGHT_GRAY
-                        };
 
                         if self.disclaimer.first_time_show_console_this_session {
                             self.disclaimer.time_when_console_disclaimer_showed_up =
@@ -373,11 +372,6 @@ impl Tab for ConsoleTab {
                     }
                 }
 
-                ui.style_mut().visuals.extreme_bg_color = if gui_config.dark_mode {
-                    colors::DARK_GRAY
-                } else {
-                    colors::LIGHT_GRAY
-                };
                 ui.add_sized(
                     mods_combo_box.rect.size(),
                     TextEdit::singleline(&mut self.filter.text)
@@ -386,7 +380,9 @@ impl Tab for ConsoleTab {
                         } else {
                             Color32::BLACK
                         })
-                        .hint_text(WidgetText::from("Filter Text").color(colors::FADED_LIGHT_GRAY)),
+                        .hint_text(
+                            WidgetText::from("Filter Text").color(ui.style().visuals.text_color()),
+                        ),
                 );
 
                 ui.checkbox(
@@ -401,19 +397,6 @@ impl Tab for ConsoleTab {
                 // ui.add_space(ui.available_width() / 2. - label_size.x);
                 // ui.heading(settings::APP_NAME);
 
-                let theme_btn_text = if gui_config.dark_mode { "🌞" } else { "🌙" };
-                let theme_btn_size =
-                    egui_utils::compute_text_size(ui, theme_btn_text, true, false, None);
-
-                ui.add_space(ui.available_width() - theme_btn_size.x);
-
-                let theme_btn_resp = ui.add(Button::new(
-                    RichText::new(theme_btn_text).text_style(egui::TextStyle::Heading),
-                ));
-                if theme_btn_resp.clicked() {
-                    gui_config.dark_mode ^= true;
-                }
-
                 ui.set_cursor(cur_cursor_rect);
 
                 let pause_game_btn_text = if self.target_process_paused {
@@ -427,7 +410,6 @@ impl Tab for ConsoleTab {
                 ui.add_space(
                     ui.available_width()
                         - pause_game_btn_size.x
-                        - theme_btn_resp.rect.size().x
                         - (ui.spacing().item_spacing.x * 2.),
                 );
 

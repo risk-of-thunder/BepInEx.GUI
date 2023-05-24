@@ -18,6 +18,7 @@ use crossbeam_channel::Receiver;
 
 use tab::{console_tab::ConsoleTab, general_tab::GeneralTab, settings_tab::SettingsTab, Tab};
 
+use crate::theme;
 use crate::{
     bepinex_gui_config::BepInExGUIConfig,
     bepinex_gui_init_config::BepInExGUIInitConfig,
@@ -44,6 +45,8 @@ pub struct BepInExGUI {
     log_receiver_thread: Option<LogReceiver>,
 
     is_window_title_set: bool,
+
+    dark_theme: egui::Style,
 }
 
 impl App for BepInExGUI {
@@ -64,10 +67,14 @@ impl App for BepInExGUI {
         #[cfg(debug_assertions)]
         ctx.set_debug_on_hover(true);
 
-        if self.config.dark_mode {
-            ctx.set_visuals(Visuals::dark());
-        } else {
-            ctx.set_visuals(Visuals::light());
+        if self.config.theme_just_changed {
+            if self.config.dark_mode {
+                ctx.set_style(self.dark_theme.clone());
+            } else {
+                ctx.set_visuals(Visuals::light());
+            }
+
+            self.config.theme_just_changed = false;
         }
 
         if self.config.first_time {
@@ -100,6 +107,7 @@ impl BepInExGUI {
             tabs: vec![],
             log_receiver_thread: None,
             is_window_title_set: false,
+            dark_theme: theme::get_dark_theme(),
         }
     }
 
@@ -108,7 +116,13 @@ impl BepInExGUI {
             self.config = eframe::get_value(storage, settings::APP_NAME).unwrap_or_default();
         }
 
-        self.configure_fonts(&cc.egui_ctx);
+        theme::configure_fonts(&cc.egui_ctx);
+
+        if self.config.dark_mode {
+            cc.egui_ctx.set_style(self.dark_theme.clone());
+        } else {
+            cc.egui_ctx.set_visuals(egui::Visuals::light());
+        }
 
         self.start_thread_exit_gui_if_target_process_not_alive(
             self.init_config.target_process_id(),
@@ -155,54 +169,39 @@ impl BepInExGUI {
     }
 
     fn show_first_time_disclaimer(&mut self, ctx: &Context) {
-        Window::new("Disclaimer").min_width(ctx.available_rect().size().x).anchor(Align2::CENTER_CENTER, Vec2::ZERO).show(ctx, |ui| {
-        ui.vertical(|ui| {
-            ui.add(
-            Label::new(RichText::new(
-    r#"The console is now disabled by default.
-If you notice issues with a mod while playing:
-- Head to the Modding Discord by clicking on the button below.
-- Post the log file by copying it to clipboard through the button below.
-- Wait for help.
-For mod developers that like the old conhost console, you can enable it back by opening the BepInEx/config/BepInEx.cfg and 
-setting to true the "Enables showing a console for log output." config option."#).font(FontId::proportional(20.0))).wrap(true));
+        Window::new("Disclaimer")
+        .collapsible(false).min_width(ctx.available_rect().size().x).anchor(Align2::CENTER_CENTER, Vec2::ZERO).show(ctx, |ui| {
+            ui.vertical(|ui| {
+                ui.add(
+                Label::new(RichText::new(
+        r#"The console is now disabled by default.
+    If you notice issues with a mod while playing:
+    - Head to the Modding Discord by clicking on the button below.
+    - Post the log file by copying it to clipboard through the button below.
+    - Wait for help.
+    For mod developers that like the old conhost console, you can enable it back by opening the BepInEx/config/BepInEx.cfg and 
+    setting to true the "Enables showing a console for log output." config option."#).font(FontId::proportional(20.0))).wrap(true));
 
-            if self.disclaimer.first_time_showing_console_disclaimer {
-                self.disclaimer.time_when_disclaimer_showed_up = Some(SystemTime::now());
-                self.disclaimer.first_time_showing_console_disclaimer = false;
-            }
+                if self.disclaimer.first_time_showing_console_disclaimer {
+                    self.disclaimer.time_when_disclaimer_showed_up = Some(SystemTime::now());
+                    self.disclaimer.first_time_showing_console_disclaimer = false;
+                }
 
-            if let Ok(_elapsed) = self.disclaimer.time_when_disclaimer_showed_up.unwrap().elapsed() {
-                let elapsed = _elapsed.as_secs() as i64;
-                const NEEDED_TIME_BEFORE_CLOSABLE:i64 = 9;
-                let can_close = elapsed > NEEDED_TIME_BEFORE_CLOSABLE;
-                if can_close {
-                    if ui.button(RichText::new("Ok").font(FontId::proportional(20.0))).clicked() {
-                        self.config.first_time = false;
+                if let Ok(_elapsed) = self.disclaimer.time_when_disclaimer_showed_up.unwrap().elapsed() {
+                    let elapsed = _elapsed.as_secs() as i64;
+                    const NEEDED_TIME_BEFORE_CLOSABLE:i64 = 9;
+                    let can_close = elapsed > NEEDED_TIME_BEFORE_CLOSABLE;
+                    if can_close {
+                        if ui.button(RichText::new("Ok").font(FontId::proportional(20.0))).clicked() {
+                            self.config.first_time = false;
+                        }
+                    }
+                    else {
+                        ui.label(RichText::new(((NEEDED_TIME_BEFORE_CLOSABLE + 1) - elapsed).to_string()).font(FontId::proportional(20.0)));
                     }
                 }
-                else {
-                    ui.label(RichText::new(((NEEDED_TIME_BEFORE_CLOSABLE + 1) - elapsed).to_string()).font(FontId::proportional(20.0)));
-                }
-            }
+            });
         });
-    });
-    }
-
-    fn configure_fonts(&self, ctx: &Context) {
-        let mut font_def = FontDefinitions::default();
-        font_def.font_data.insert(
-            "MesloLGS".to_string(),
-            FontData::from_static(include_bytes!("../assets/fonts/MesloLGS_NF_Regular.ttf")),
-        );
-
-        font_def
-            .families
-            .get_mut(&FontFamily::Proportional)
-            .unwrap()
-            .insert(0, "MesloLGS".to_string());
-
-        ctx.set_fonts(font_def);
     }
 
     fn start_thread_exit_gui_if_target_process_not_alive(&self, target_process_id: Pid) {
@@ -286,21 +285,6 @@ fn spawn_thread_reset_bepgui_if_window_hang() {
     });
 }
 
-pub fn render_theme_button(gui_config: &mut BepInExGUIConfig, ui: &mut egui::Ui) {
-    let theme_btn_text = if gui_config.dark_mode { "🌞" } else { "🌙" };
-
-    let theme_btn_size = egui_utils::compute_text_size(ui, theme_btn_text, true, false, None);
-    ui.add_space(ui.available_width() - theme_btn_size.x);
-
-    let theme_btn_resp = ui.add(Button::new(
-        RichText::new(theme_btn_text).text_style(egui::TextStyle::Heading),
-    ));
-
-    if theme_btn_resp.clicked() {
-        gui_config.dark_mode ^= true;
-    }
-}
-
 pub fn render_useful_buttons_footer(
     ui: &mut Ui,
     _ctx: &Context,
@@ -308,7 +292,9 @@ pub fn render_useful_buttons_footer(
     bepinex_log_output_file_full_path: &PathBuf,
     target_process_id: Pid,
 ) {
-    ui.horizontal_centered(|ui| {
+    ui.add_space(3.0);
+
+    ui.horizontal(|ui| {
         const FONT_SIZE: f32 = 18.;
         // let mut FONT_SIZE = 20. * (ui.available_width() / 900.);
 
