@@ -17,12 +17,14 @@ impl SettingsTab {
 
     fn render(&mut self, gui_config: &mut BepInExGUIConfig, ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
-            let mut button_size = ui.available_size() / 2.;
+            let mut button_size = ui.available_size() / 3.;
             button_size.x = ui.available_width();
 
             render_close_window_when_game_loaded_checkbox(ui, button_size, gui_config);
 
             render_close_window_when_game_closes_checkbox(gui_config, ui, button_size);
+
+            render_switch_theme_button(gui_config, ui, button_size);
         });
     }
 }
@@ -34,7 +36,7 @@ fn render_close_window_when_game_loaded_checkbox(
 ) {
     if egui_utils::checkbox(
         &mut gui_config.close_window_when_game_loaded,
-        "Close Window When Game Loaded",
+        "Close this window when the game is loaded",
         ui,
         button_size,
         20.,
@@ -54,7 +56,7 @@ fn render_close_window_when_game_closes_checkbox(
 
     if egui_utils::checkbox(
         close_window_when_game_closes,
-        "Close Window When Game Closes",
+        "Close this window when the game closes",
         ui,
         button_size,
         20.,
@@ -64,6 +66,29 @@ fn render_close_window_when_game_closes_checkbox(
             .store(*close_window_when_game_closes, Ordering::Relaxed);
 
         _ = gui_config.save_bepinex_toml_cfg_file();
+    }
+}
+
+fn render_switch_theme_button(
+    gui_config: &mut BepInExGUIConfig,
+    ui: &mut eframe::egui::Ui,
+    button_size: eframe::epaint::Vec2,
+) {
+    let is_dark_mode = gui_config.dark_mode;
+
+    if egui_utils::colored_button(
+        if is_dark_mode {
+            "Switch to light theme 🌞"
+        } else {
+            "Switch to dark theme 🌙"
+        },
+        ui,
+        button_size,
+        20.,
+        Some(ui.style().visuals.widgets.noninteractive.bg_fill),
+    ) {
+        gui_config.dark_mode = !gui_config.dark_mode;
+        gui_config.theme_just_changed = true;
     }
 }
 
