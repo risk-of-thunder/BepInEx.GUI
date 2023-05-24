@@ -25,6 +25,7 @@ strum = { version = "0.24.1", features = ["derive"] }
 zip = "0.6.6"
 sysinfo = "0.29.0"
 crossbeam-channel = "0.5.8"
+image = "0.24.6"
 
 # all of this is taken from https://github.com/johnthagen/min-sized-rust
 [profile.release]
