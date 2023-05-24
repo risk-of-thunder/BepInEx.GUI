@@ -56,6 +56,7 @@ pub fn colored_button(
     let mut btn = Button::new(RichText::new(text).font(FontId::proportional(font_size)));
     if let Some(color) = fill_color {
         btn = btn.fill(color);
+        btn = btn.stroke(Stroke::default());
     }
 
     ui.add_sized(button_size, btn).clicked()

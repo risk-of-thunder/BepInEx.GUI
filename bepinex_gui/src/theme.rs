@@ -96,7 +96,6 @@ pub fn get_dark_theme() -> egui::Style {
 
     let panel_bg_color = get_aliased_color(&json, "{Alias.Color.Surface.Default.value}");
     let floating_color = get_aliased_color(&json, "{Alias.Color.Surface.Floating.value}");
-    // let floating_color = Color32::from_gray(38); // TODO(emilk): change the content of the design_tokens.json origin instead
 
     // Used as the background of text edits, scroll bars and others things
     // that needs to look different from other interactive stuff.
@@ -108,13 +107,16 @@ pub fn get_dark_theme() -> egui::Style {
 
     egui_style.visuals.button_frame = true;
     egui_style.visuals.widgets.inactive.weak_bg_fill = Default::default(); // Buttons have no background color when inactive
-    egui_style.visuals.widgets.inactive.bg_fill = Color32::from_gray(40);
+                                                                           // egui_style.visuals.widgets.inactive.weak_bg_fill =
+                                                                           //     get_aliased_color(&json, "{Alias.Color.Action.Default.value}");
+                                                                           // egui_style.visuals.widgets.inactive.bg_fill = Color32::from_gray(40);
+    egui_style.visuals.widgets.inactive.bg_fill =
+        get_aliased_color(&json, "{Alias.Color.Action.Default.value}");
     // get_aliased_color(&json, "{Alias.Color.Action.Default.value}"); // too dark to see, especially for scroll bars
 
     {
         // Background colors for buttons (menu buttons, blueprint buttons, etc) when hovered or clicked:
-        // let hovered_color = get_aliased_color(&json, "{Alias.Color.Action.Hovered.value}");
-        let hovered_color = Color32::from_gray(64); // TODO(emilk): change the content of the design_tokens.json origin instead
+        let hovered_color = get_aliased_color(&json, "{Alias.Color.Action.Hovered.value}");
         egui_style.visuals.widgets.hovered.weak_bg_fill = hovered_color;
         egui_style.visuals.widgets.hovered.bg_fill = hovered_color;
         egui_style.visuals.widgets.active.weak_bg_fill = hovered_color;
@@ -123,12 +125,15 @@ pub fn get_dark_theme() -> egui::Style {
         egui_style.visuals.widgets.open.bg_fill = hovered_color;
     }
 
+    // Buttons
     {
+        // egui_style.visuals.widgets.inactive.bg_stroke =
+        //     egui_style.visuals.widgets.hovered.bg_stroke;
+
         // Turn off strokes around buttons:
-        egui_style.visuals.widgets.inactive.bg_stroke = Default::default();
-        egui_style.visuals.widgets.hovered.bg_stroke = Default::default();
-        egui_style.visuals.widgets.active.bg_stroke = Default::default();
-        egui_style.visuals.widgets.open.bg_stroke = Default::default();
+        // egui_style.visuals.widgets.hovered.bg_stroke = Default::default();
+        // egui_style.visuals.widgets.active.bg_stroke = Default::default();
+        // egui_style.visuals.widgets.open.bg_stroke = Default::default();
     }
 
     {
@@ -140,8 +145,6 @@ pub fn get_dark_theme() -> egui::Style {
 
     egui_style.visuals.selection.bg_fill =
         get_aliased_color(&json, "{Alias.Color.Highlight.Default.value}");
-
-    egui_style.visuals.widgets.noninteractive.bg_stroke.color = Color32::from_gray(30); // from figma. separator lines, panel lines, etc
 
     let subudued = get_aliased_color(&json, "{Alias.Color.Text.Subdued.value}");
     let default = get_aliased_color(&json, "{Alias.Color.Text.Default.value}");
@@ -190,15 +193,16 @@ pub fn get_dark_theme() -> egui::Style {
 pub(crate) fn configure_fonts(ctx: &Context) {
     let mut font_def = FontDefinitions::default();
     font_def.font_data.insert(
-        "MesloLGS".to_string(),
-        FontData::from_static(include_bytes!("../assets/fonts/MesloLGS_NF_Regular.ttf")),
+        "Comfortaa".to_string(),
+        FontData::from_static(include_bytes!("../assets/fonts/Comfortaa-Medium.ttf")),
+        // FontData::from_static(include_bytes!("../assets/fonts/MesloLGS_NF_Regular.ttf")),
     );
 
     font_def
         .families
         .get_mut(&FontFamily::Proportional)
         .unwrap()
-        .insert(0, "MesloLGS".to_string());
+        .insert(0, "Comfortaa".to_string());
 
     ctx.set_fonts(font_def);
 }
