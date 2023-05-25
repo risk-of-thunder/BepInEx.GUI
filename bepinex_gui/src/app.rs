@@ -4,6 +4,7 @@ use eframe::CreationContext;
 use eframe::{self, *};
 
 use std::sync::{atomic::AtomicBool, Arc};
+use std::time::Duration;
 
 use crossbeam_channel::Receiver;
 
@@ -37,11 +38,13 @@ pub struct BepInExGUI {
     pub dark_theme: egui::Style,
 }
 
+const FPS_15: Duration = Duration::from_micros(66666);
+
 impl App for BepInExGUI {
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
-        self.backend_update(frame);
+        ctx.request_repaint_after(FPS_15);
 
-        ctx.request_repaint();
+        self.backend_update(frame);
 
         // #[cfg(debug_assertions)]
         // ctx.set_debug_on_hover(true);
