@@ -1,5 +1,5 @@
 // Comment for enabling console
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 
 use config::launch::AppLaunchConfig;
 use eframe::egui::*;
