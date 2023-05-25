@@ -9,14 +9,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#eframe = { git = "https://github.com/xiaoxiao921/egui/", features = ["persistence"] }
-eframe = { path = "C:/Users/Quentin/source/repos/egui/crates/eframe", features = ["persistence"] }
+eframe = { git = "https://github.com/xiaoxiao921/egui/", features = ["persistence"] }
+#eframe = { path = "C:/Users/Quentin/source/repos/egui/crates/eframe", features = ["persistence"] }
 serde = { version = "1.0.163", features = ["derive"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 byteorder = "1.4.3"
 clipboard = "0.5.0"
-rand = "0.8.5"
 directories-next = "2.0.0"
 serde_json = "1.0.96"
 reqwest = { version = "0.11.17", features = ["blocking", "gzip"] }
