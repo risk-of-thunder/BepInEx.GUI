@@ -10,10 +10,12 @@ use std::{
 
 use serde::*;
 
-use crate::{bepinex_log::LogLevel, settings};
+use crate::{app, data::bepinex_log::LogLevel};
+
+pub mod launch;
 
 #[derive(Serialize, Deserialize)]
-pub struct BepInExGUIConfig {
+pub struct Config {
     #[serde(skip)]
     pub theme_just_changed: bool,
 
@@ -45,7 +47,7 @@ pub struct BepInExGUIConfig {
     pub bepinex_gui_csharp_cfg_full_path: PathBuf,
 }
 
-impl Default for BepInExGUIConfig {
+impl Default for Config {
     fn default() -> Self {
         Self {
             theme_just_changed: true,
@@ -62,17 +64,7 @@ impl Default for BepInExGUIConfig {
     }
 }
 
-impl BepInExGUIConfig {
-    #[allow(dead_code)]
-    pub fn get_app_ron_file_full_path() -> Option<PathBuf> {
-        if let Some(proj_dirs) = directories_next::ProjectDirs::from("", "", settings::APP_NAME) {
-            let data_dir = proj_dirs.data_dir().to_path_buf();
-            Some(data_dir.join("app.ron"))
-        } else {
-            None
-        }
-    }
-
+impl Config {
     pub fn read_bepinex_toml_cfg_file(&mut self) -> io::Result<()> {
         let file = File::open(&self.bepinex_gui_csharp_cfg_full_path)?;
         let reader = BufReader::new(file);
@@ -164,5 +156,14 @@ impl BepInExGUIConfig {
         }
 
         Ok(())
+    }
+}
+
+pub fn get_app_ron_file_full_path() -> Option<PathBuf> {
+    if let Some(proj_dirs) = directories_next::ProjectDirs::from("", "", app::NAME) {
+        let data_dir = proj_dirs.data_dir().to_path_buf();
+        Some(data_dir.join("app.ron"))
+    } else {
+        None
     }
 }

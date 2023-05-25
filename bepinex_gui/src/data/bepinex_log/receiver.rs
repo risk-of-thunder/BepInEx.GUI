@@ -10,10 +10,11 @@ use std::thread;
 
 use crossbeam_channel::Sender;
 
-use crate::bepinex_log::BepInExLogEntry;
-use crate::bepinex_log::LogLevel;
-use crate::bepinex_mod::BepInExMod;
-use crate::network::packet_protocol;
+use crate::backend::network::packet_protocol;
+use crate::data::bepinex_mod::BepInExMod;
+
+use super::BepInExLogEntry;
+use super::LogLevel;
 
 #[derive(Clone)]
 pub struct LogReceiver {

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sysinfo::{Pid, ProcessExt, SystemExt};
 
-use crate::file_explorer_utils;
+use crate::backend::file_explorer_utils;
 
 pub const URL: &str = "https://thunderstore.io/api/experimental/community/";
 

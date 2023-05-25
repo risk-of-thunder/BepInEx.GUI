@@ -1,11 +1,3 @@
-use crate::{
-    bepinex_gui::{self},
-    bepinex_gui_config::BepInExGUIConfig,
-    bepinex_gui_init_config::BepInExGUIInitConfig,
-    bepinex_log::{self, BepInExLogEntry, LogLevel},
-    bepinex_mod::BepInExMod,
-    egui_utils, process,
-};
 use clipboard::*;
 use crossbeam_channel::Receiver;
 use eframe::{egui::*, *};
@@ -17,15 +9,20 @@ use std::{
     time::SystemTime,
 };
 
+use crate::{
+    backend::process,
+    config::{launch::AppLaunchConfig, Config},
+    data::{
+        bepinex_log::{BepInExLogEntry, LogLevel},
+        bepinex_mod::BepInExMod,
+    },
+    views::{self, disclaimer::Disclaimer},
+};
+
 use super::Tab;
 
-struct Disclaimer {
-    pub first_time_show_console_this_session: bool,
-    pub time_when_console_disclaimer_showed_up: Option<SystemTime>,
-}
-
 struct LogSelection {
-    pub button_currently_down: bool,
+    pub button_just_got_down: bool,
     pub first_index_of_log_that_is_selected: u32,
     pub selected_index_in_mods_combo_box: usize,
     pub smallest_index_of_hovered_log: u32,
@@ -40,7 +37,7 @@ impl LogSelection {
             .input(|i| i.pointer.button_down(PointerButton::Primary));
 
         if is_log_selection_button_up {
-            self.button_currently_down = false;
+            self.button_just_got_down = false;
         }
 
         is_log_selection_button_down
@@ -76,11 +73,11 @@ impl ConsoleTab {
     ) -> Self {
         Self {
             disclaimer: Disclaimer {
-                first_time_show_console_this_session: true,
-                time_when_console_disclaimer_showed_up: None,
+                first_time_showing_it: true,
+                time_when_disclaimer_showed_up: None,
             },
             log_selection: LogSelection {
-                button_currently_down: false,
+                button_just_got_down: false,
                 first_index_of_log_that_is_selected: std::u32::MAX,
                 selected_index_in_mods_combo_box: 0,
                 smallest_index_of_hovered_log: std::u32::MAX,
@@ -99,18 +96,13 @@ impl ConsoleTab {
         }
     }
 
-    fn render(
-        &mut self,
-        data: &BepInExGUIInitConfig,
-        gui_config: &BepInExGUIConfig,
-        ctx: &Context,
-    ) {
+    fn render(&mut self, data: &AppLaunchConfig, gui_config: &Config, ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
             if self.logs.is_empty() {
                 ui.vertical_centered_justified(|ui| {
                     let loading_text = "Loading ⌛";
                     let text_size =
-                        egui_utils::compute_text_size(ui, loading_text, true, false, None);
+                        views::utils::egui::compute_text_size(ui, loading_text, true, false, None);
                     ui.add_space(ui.available_height() / 2. - text_size.y);
                     ui.heading(loading_text);
                 });
@@ -126,15 +118,19 @@ impl ConsoleTab {
 
             if ui.ctx().input(|i| i.modifiers.command) && ui.ctx().input(|i| i.key_pressed(Key::F5))
             {
-                process::kill(data.target_process_id(), || {
-                    tracing::info!("Exiting because Command + F5 was pressed.");
-                    self.should_exit_app.store(true, Ordering::Relaxed);
-                });
+                self.kill_gui_and_target(data);
             }
         });
     }
 
-    fn render_logs(&mut self, gui_config: &BepInExGUIConfig, ui: &mut eframe::egui::Ui) {
+    fn kill_gui_and_target(&mut self, data: &AppLaunchConfig) {
+        process::kill(data.target_process_id(), || {
+            tracing::info!("Exiting because Command + F5 was pressed.");
+            self.should_exit_app.store(true, Ordering::Relaxed);
+        });
+    }
+
+    fn render_logs(&mut self, gui_config: &Config, ui: &mut eframe::egui::Ui) {
         let clip_rect = ui.painter().clip_rect();
 
         let info_log_color = if gui_config.dark_mode {
@@ -147,62 +143,17 @@ impl ConsoleTab {
 
         let mut i = 0;
         for log in &mut self.logs {
-            if log.level() > gui_config.log_level_filter {
-                continue;
-            }
-
-            if !ConsoleTab::does_log_match_text_filter(&self.filter.text, log) {
-                continue;
-            }
-
-            let log_color = match log.level() {
-                bepinex_log::LogLevel::None => Color32::RED,
-                bepinex_log::LogLevel::Fatal => Color32::RED,
-                bepinex_log::LogLevel::Error => Color32::RED,
-                bepinex_log::LogLevel::Warning => Color32::YELLOW,
-                bepinex_log::LogLevel::Message => info_log_color,
-                bepinex_log::LogLevel::Info => info_log_color,
-                bepinex_log::LogLevel::Debug => info_log_color,
-                bepinex_log::LogLevel::All => info_log_color,
-            };
-
-            let is_selected = i >= self.log_selection.smallest_index_of_hovered_log
-                && i <= self.log_selection.biggest_index_of_hovered_log;
-
-            log.is_selected = is_selected;
-
-            let ui_log_entry = ui.add(SelectableLabel::new(
-                is_selected,
-                RichText::new(log.data()).color(log_color),
-            ));
-
-            let mut log_rect = ui_log_entry.rect;
-            log_rect.max.x = clip_rect.max.x;
-
-            if is_log_selection_button_down {
-                if ui.rect_contains_pointer(log_rect) {
-                    if !self.log_selection.button_currently_down {
-                        self.log_selection.button_currently_down = true;
-                        self.log_selection.first_index_of_log_that_is_selected = i;
-                        self.log_selection.smallest_index_of_hovered_log = i;
-                        self.log_selection.biggest_index_of_hovered_log = i;
-                    }
-
-                    if i <= self.log_selection.first_index_of_log_that_is_selected {
-                        self.log_selection.smallest_index_of_hovered_log = i;
-                    }
-
-                    if i >= self.log_selection.first_index_of_log_that_is_selected {
-                        self.log_selection.biggest_index_of_hovered_log = i;
-                    }
-                }
-
-                if self.log_selection.button_currently_down {
-                    egui_utils::scroll_when_trying_to_select_stuff_above_or_under_rect(
-                        ui, clip_rect,
-                    );
-                }
-            }
+            Self::render_log(
+                &mut self.log_selection,
+                &mut self.filter,
+                log,
+                gui_config,
+                info_log_color,
+                i,
+                ui,
+                clip_rect,
+                is_log_selection_button_down,
+            );
 
             i += 1;
         }
@@ -210,7 +161,7 @@ impl ConsoleTab {
         let log_count = self.logs.len();
         if gui_config.log_auto_scroll_to_bottom
             && self.scroll.last_log_count != log_count
-            && !self.log_selection.button_currently_down
+            && !self.log_selection.button_just_got_down
         {
             ui.scroll_with_delta(Vec2::new(0., f32::NEG_INFINITY));
             self.scroll.last_log_count = log_count;
@@ -242,10 +193,64 @@ impl ConsoleTab {
         }
     }
 
-    fn does_log_match_text_filter(
-        text_filter: &String,
-        log: &bepinex_log::BepInExLogEntry,
-    ) -> bool {
+    fn render_log(
+        log_selection: &mut LogSelection,
+        filter: &mut Filter,
+        log: &mut BepInExLogEntry,
+        gui_config: &Config,
+        info_log_color: Color32,
+        i: u32,
+        ui: &mut Ui,
+        clip_rect: Rect,
+        is_log_selection_button_down: bool,
+    ) {
+        if log.level() > gui_config.log_level_filter {
+            return;
+        }
+
+        if !ConsoleTab::does_log_match_text_filter(&filter.text, log) {
+            return;
+        }
+
+        let log_color = get_color_from_log_level(log, info_log_color);
+
+        let is_selected = i >= log_selection.smallest_index_of_hovered_log
+            && i <= log_selection.biggest_index_of_hovered_log;
+
+        log.is_selected = is_selected;
+
+        let ui_log_entry = ui.add(SelectableLabel::new(
+            is_selected,
+            RichText::new(log.data()).color(log_color),
+        ));
+        let mut log_rect = ui_log_entry.rect;
+        log_rect.max.x = clip_rect.max.x;
+
+        if is_log_selection_button_down {
+            if ui.rect_contains_pointer(log_rect) {
+                if !log_selection.button_just_got_down {
+                    log_selection.button_just_got_down = true;
+                    log_selection.first_index_of_log_that_is_selected = i;
+                    log_selection.smallest_index_of_hovered_log = i;
+                    log_selection.biggest_index_of_hovered_log = i;
+                }
+
+                if i <= log_selection.first_index_of_log_that_is_selected {
+                    log_selection.smallest_index_of_hovered_log = i;
+                }
+
+                if i >= log_selection.first_index_of_log_that_is_selected {
+                    log_selection.biggest_index_of_hovered_log = i;
+                }
+            }
+
+            views::utils::egui::scroll_when_trying_to_select_stuff_above_or_under_rect(
+                ui, clip_rect,
+            );
+        }
+    }
+
+    fn does_log_match_text_filter(text_filter: &String, log: &BepInExLogEntry) -> bool {
         if !text_filter.is_empty() {
             if !log
                 .data()
@@ -259,12 +264,7 @@ impl ConsoleTab {
         return true;
     }
 
-    fn render_footer(
-        &mut self,
-        data: &BepInExGUIInitConfig,
-        gui_config: &mut BepInExGUIConfig,
-        ctx: &Context,
-    ) {
+    fn render_footer(&mut self, data: &AppLaunchConfig, gui_config: &mut Config, ctx: &Context) {
         TopBottomPanel::bottom("footer").show(ctx, |ui| {
             ui.add_space(2.0);
             ui.label(RichText::new("Log Level Filtering: ").font(FontId::proportional(15.0)));
@@ -279,7 +279,7 @@ impl ConsoleTab {
                 .text(log_level_text),
             );
 
-            bepinex_gui::render_useful_buttons_footer(
+            views::BepInExGUI::render_useful_buttons_footer(
                 ui,
                 ctx,
                 &data.game_folder_full_path(),
@@ -289,11 +289,7 @@ impl ConsoleTab {
         });
     }
 
-    fn render_console_first_time_disclaimer(
-        &mut self,
-        ctx: &Context,
-        gui_config: &mut BepInExGUIConfig,
-    ) {
+    fn render_console_first_time_disclaimer(&mut self, ctx: &Context, gui_config: &mut Config) {
         CentralPanel::default().show(ctx, |_| {
                 Window::new("Console Disclaimer")
                     .collapsible(false)
@@ -304,14 +300,14 @@ impl ConsoleTab {
                                 If any of your mods is malfunctioning and that you wish to receive help in the #tech-support channel of the discord:
                                 Please use the buttons below and use the "Copy Log File" button, and drag and drop it in the #tech-support channel."#);
 
-                        if self.disclaimer.first_time_show_console_this_session {
-                            self.disclaimer.time_when_console_disclaimer_showed_up =
+                        if self.disclaimer.first_time_showing_it {
+                            self.disclaimer.time_when_disclaimer_showed_up =
                                 Some(SystemTime::now());
-                            self.disclaimer.first_time_show_console_this_session = false;
+                            self.disclaimer.first_time_showing_it = false;
                         }
 
                         if let Ok(_elapsed) =
-                            self.disclaimer.time_when_console_disclaimer_showed_up.unwrap().elapsed()
+                            self.disclaimer.time_when_disclaimer_showed_up.unwrap().elapsed()
                         {
                             let elapsed = _elapsed.as_secs() as i64;
                             if 9 - elapsed >= 0 {
@@ -333,6 +329,114 @@ impl ConsoleTab {
                     });
             });
     }
+
+    fn render_kill_gui_and_game_butto(
+        &mut self,
+        ui: &mut Ui,
+        pause_game_btn_size: Vec2,
+        data: &AppLaunchConfig,
+    ) {
+        let kill_game_btn_text = "Kill GUI & Game";
+        let kill_game_btn_size =
+            views::utils::egui::compute_text_size(ui, kill_game_btn_text, true, false, None);
+
+        ui.add_space(
+            ui.available_width()
+                - pause_game_btn_size.x
+                - kill_game_btn_size.x
+                - (ui.spacing().item_spacing.x * 4.),
+        );
+
+        if ui
+            .add(Button::new(
+                RichText::new(kill_game_btn_text).text_style(egui::TextStyle::Heading),
+            ))
+            .clicked()
+        {
+            self.kill_gui_and_target(data);
+        }
+    }
+
+    fn render_pause_game_button(&mut self, ui: &mut Ui, data: &AppLaunchConfig) -> Vec2 {
+        let pause_game_btn_text = if self.target_process_paused {
+            "Resume Game"
+        } else {
+            "Pause Game"
+        };
+        let pause_game_btn_size =
+            views::utils::egui::compute_text_size(ui, pause_game_btn_text, true, false, None);
+
+        ui.add_space(
+            ui.available_width() - pause_game_btn_size.x - (ui.spacing().item_spacing.x * 2.),
+        );
+
+        if ui
+            .add(Button::new(
+                RichText::new(pause_game_btn_text).text_style(egui::TextStyle::Heading),
+            ))
+            .clicked()
+        {
+            if self.target_process_paused {
+                self.target_process_paused = !process::resume(data.target_process_id());
+            } else {
+                self.target_process_paused = process::suspend(data.target_process_id());
+            }
+        }
+        pause_game_btn_size
+    }
+
+    fn render_log_text_filter_input(
+        &mut self,
+        ui: &mut Ui,
+        mods_combo_box: Response,
+        gui_config: &mut Config,
+    ) {
+        ui.add_sized(
+            mods_combo_box.rect.size(),
+            TextEdit::singleline(&mut self.filter.text)
+                .text_color(if gui_config.dark_mode {
+                    Color32::WHITE
+                } else {
+                    Color32::BLACK
+                })
+                .hint_text(WidgetText::from("Filter Text").color(ui.style().visuals.text_color())),
+        );
+    }
+
+    fn render_log_mod_filter(&mut self, ui: &mut Ui) -> Response {
+        let mods_combo_box = ComboBox::from_id_source("combo_box_mods_log_filter")
+            .width(200.)
+            .show_index(
+                ui,
+                &mut self.log_selection.selected_index_in_mods_combo_box,
+                self.mods.len(),
+                |i| self.mods[i].name(),
+            );
+
+        if mods_combo_box.changed() {
+            if self.log_selection.selected_index_in_mods_combo_box == 0 {
+                self.filter.text = "".to_string();
+            } else {
+                self.filter.text = self.mods[self.log_selection.selected_index_in_mods_combo_box]
+                    .name()
+                    .to_string();
+            }
+        }
+        mods_combo_box
+    }
+}
+
+fn get_color_from_log_level(log: &mut BepInExLogEntry, info_log_color: Color32) -> Color32 {
+    match log.level() {
+        LogLevel::None => Color32::RED,
+        LogLevel::Fatal => Color32::RED,
+        LogLevel::Error => Color32::RED,
+        LogLevel::Warning => Color32::YELLOW,
+        LogLevel::Message => info_log_color,
+        LogLevel::Info => info_log_color,
+        LogLevel::Debug => info_log_color,
+        LogLevel::All => info_log_color,
+    }
 }
 
 impl Tab for ConsoleTab {
@@ -342,8 +446,8 @@ impl Tab for ConsoleTab {
 
     fn update_top_panel(
         &mut self,
-        data: &BepInExGUIInitConfig,
-        gui_config: &mut BepInExGUIConfig,
+        data: &AppLaunchConfig,
+        gui_config: &mut Config,
         ui: &mut eframe::egui::Ui,
     ) {
         egui::menu::bar(ui, move |ui| {
@@ -352,87 +456,26 @@ impl Tab for ConsoleTab {
                 let cur_cursor_rect = ui.cursor();
 
                 ui.label(RichText::new("Log Filtering: ").font(FontId::proportional(20.0)));
-                let mods_combo_box = ComboBox::from_id_source("combo_box_mods_log_filter")
-                    .width(200.)
-                    .show_index(
-                        ui,
-                        &mut self.log_selection.selected_index_in_mods_combo_box,
-                        self.mods.len(),
-                        |i| self.mods[i].name(),
-                    );
+                let mods_combo_box = self.render_log_mod_filter(ui);
+                self.render_log_text_filter_input(ui, mods_combo_box, gui_config);
 
-                if mods_combo_box.changed() {
-                    if self.log_selection.selected_index_in_mods_combo_box == 0 {
-                        self.filter.text = "".to_string();
-                    } else {
-                        self.filter.text = self.mods
-                            [self.log_selection.selected_index_in_mods_combo_box]
-                            .name()
-                            .to_string();
-                    }
-                }
-
-                ui.add_sized(
-                    mods_combo_box.rect.size(),
-                    TextEdit::singleline(&mut self.filter.text)
-                        .text_color(if gui_config.dark_mode {
-                            Color32::WHITE
-                        } else {
-                            Color32::BLACK
-                        })
-                        .hint_text(
-                            WidgetText::from("Filter Text").color(ui.style().visuals.text_color()),
-                        ),
-                );
-
-                ui.checkbox(
-                    &mut gui_config.log_auto_scroll_to_bottom,
-                    "Auto Scroll to Bottom",
-                );
-
-                // restore cursor so that we can center label easily
-                ui.set_cursor(cur_cursor_rect);
-
-                // let label_size = compute_text_size(ui, settings::APP_NAME, true, false);
-                // ui.add_space(ui.available_width() / 2. - label_size.x);
-                // ui.heading(settings::APP_NAME);
+                render_auto_scroll_to_bottom_checkbox(ui, gui_config);
 
                 ui.set_cursor(cur_cursor_rect);
 
-                let pause_game_btn_text = if self.target_process_paused {
-                    "Resume Game"
-                } else {
-                    "Pause Game"
-                };
-                let pause_game_btn_size =
-                    egui_utils::compute_text_size(ui, pause_game_btn_text, true, false, None);
+                let pause_game_btn_size = self.render_pause_game_button(ui, data);
 
-                ui.add_space(
-                    ui.available_width()
-                        - pause_game_btn_size.x
-                        - (ui.spacing().item_spacing.x * 2.),
-                );
+                ui.set_cursor(cur_cursor_rect);
 
-                if ui
-                    .add(Button::new(
-                        RichText::new(pause_game_btn_text).text_style(egui::TextStyle::Heading),
-                    ))
-                    .clicked()
-                {
-                    if self.target_process_paused {
-                        self.target_process_paused = !process::resume(data.target_process_id());
-                    } else {
-                        self.target_process_paused = process::suspend(data.target_process_id());
-                    }
-                }
+                self.render_kill_gui_and_game_butto(ui, pause_game_btn_size, data);
             });
         });
     }
 
     fn update(
         &mut self,
-        data: &BepInExGUIInitConfig,
-        gui_config: &mut BepInExGUIConfig,
+        data: &AppLaunchConfig,
+        gui_config: &mut Config,
         ctx: &eframe::egui::Context,
         _frame: &mut eframe::Frame,
     ) {
@@ -447,6 +490,13 @@ impl Tab for ConsoleTab {
             self.render(data, gui_config, ctx);
         }
     }
+}
+
+fn render_auto_scroll_to_bottom_checkbox(ui: &mut Ui, gui_config: &mut Config) {
+    ui.checkbox(
+        &mut gui_config.log_auto_scroll_to_bottom,
+        "Auto Scroll to Bottom",
+    );
 }
 
 impl ConsoleTab {

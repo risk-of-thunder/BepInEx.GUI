@@ -7,8 +7,10 @@ use eframe::{
 };
 
 use crate::{
-    bepinex_gui, bepinex_gui_config::BepInExGUIConfig,
-    bepinex_gui_init_config::BepInExGUIInitConfig, bepinex_mod::BepInExMod, egui_utils,
+    app,
+    config::{launch::AppLaunchConfig, Config},
+    data::bepinex_mod::BepInExMod,
+    views,
 };
 
 use super::Tab;
@@ -26,11 +28,11 @@ impl GeneralTab {
         }
     }
 
-    fn render_footer(&mut self, data: &BepInExGUIInitConfig, ctx: &Context) {
+    fn render_footer(&mut self, data: &AppLaunchConfig, ctx: &Context) {
         TopBottomPanel::bottom("footer").show(ctx, |ui| {
             ui.add_space(25.0);
 
-            bepinex_gui::render_useful_buttons_footer(
+            app::BepInExGUI::render_useful_buttons_footer(
                 ui,
                 ctx,
                 &data.game_folder_full_path(),
@@ -40,13 +42,13 @@ impl GeneralTab {
         });
     }
 
-    fn render(&mut self, gui_config: &BepInExGUIConfig, ctx: &Context) {
+    fn render(&mut self, gui_config: &Config, ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
             if self.mods.is_empty() {
                 ui.vertical_centered_justified(|ui| {
                     let loading_text = "Loading ⌛";
                     let text_size =
-                        egui_utils::compute_text_size(ui, loading_text, true, false, None);
+                        views::utils::egui::compute_text_size(ui, loading_text, true, false, None);
                     ui.add_space(ui.available_height() / 2. - text_size.y);
                     ui.heading(loading_text);
                 });
@@ -61,7 +63,7 @@ impl GeneralTab {
         });
     }
 
-    fn render_mods(&self, _gui_config: &BepInExGUIConfig, ui: &mut egui::Ui) {
+    fn render_mods(&self, _gui_config: &Config, ui: &mut egui::Ui) {
         for mod_ in self.mods.as_slice() {
             ui.add(Label::new(RichText::new(mod_.to_string())));
         }
@@ -84,8 +86,8 @@ impl Tab for GeneralTab {
 
     fn update_top_panel(
         &mut self,
-        data: &BepInExGUIInitConfig,
-        _gui_config: &mut BepInExGUIConfig,
+        data: &AppLaunchConfig,
+        _gui_config: &mut Config,
         ui: &mut eframe::egui::Ui,
     ) {
         egui::menu::bar(ui, move |ui| {
@@ -106,8 +108,8 @@ impl Tab for GeneralTab {
 
     fn update(
         &mut self,
-        data: &BepInExGUIInitConfig,
-        gui_config: &mut BepInExGUIConfig,
+        data: &AppLaunchConfig,
+        gui_config: &mut Config,
         ctx: &eframe::egui::Context,
         _frame: &mut eframe::Frame,
     ) {

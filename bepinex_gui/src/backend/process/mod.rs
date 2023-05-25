@@ -169,13 +169,13 @@ pub(crate) fn spawn_thread_check_if_process_is_hung(
             let mut i = 0;
             loop {
                 if IsHungAppWindow(WINDOW_HANDLE) == 1 {
-                    i += 1;
-
-                    if i == 5 {
+                    if i == 3 {
                         callback();
                         tracing::info!("callback called!");
                         return Ok(());
                     }
+
+                    i += 1;
                 }
 
                 thread::sleep(time::Duration::from_millis(1000));

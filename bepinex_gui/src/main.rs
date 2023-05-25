@@ -1,41 +1,32 @@
 // Comment for enabling console
 // #![windows_subsystem = "windows"]
 
-use bepinex_gui_init_config::BepInExGUIInitConfig;
+use config::launch::AppLaunchConfig;
 use eframe::egui::*;
 use std::env;
 
-mod bepinex_gui;
-mod bepinex_gui_config;
-mod bepinex_gui_init_config;
-mod bepinex_log;
-mod bepinex_mod;
-mod egui_utils;
-mod file_explorer_utils;
-mod internal_logger;
-mod network;
-mod panic_handler;
-mod process;
-mod settings;
-mod tab;
+mod app;
+mod backend;
+mod config;
+mod data;
+mod logger;
+mod paths;
 mod theme;
-mod thunderstore;
-mod window;
+mod views;
 
 fn main() {
-    internal_logger::init();
+    logger::init();
 
-    panic_handler::init();
+    backend::init();
 
     let args: Vec<String> = env::args().collect();
 
-    let gui = bepinex_gui::BepInExGUI::new(
-        BepInExGUIInitConfig::from(&args).unwrap_or_else(BepInExGUIInitConfig::default),
-    );
+    let gui =
+        app::BepInExGUI::new(AppLaunchConfig::from(&args).unwrap_or_else(AppLaunchConfig::default));
 
     let native_options = eframe::NativeOptions {
-        min_window_size: Some(Vec2::new(884., 400.)),
-        initial_window_size: Some(Vec2::new(993., 519.)),
+        min_window_size: Some(Vec2::new(480., 270.)),
+        initial_window_size: Some(Vec2::new(1034., 520.)),
         initial_centered: true,
 
         icon_data: Some(load_icon()),
@@ -44,7 +35,7 @@ fn main() {
     };
 
     match eframe::run_native(
-        settings::APP_NAME,
+        app::NAME,
         native_options,
         Box::new(|cc| Box::new(gui.init(cc))),
     ) {

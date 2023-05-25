@@ -4,10 +4,10 @@ use std::sync::Mutex;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, Registry};
 
-use crate::bepinex_log;
+use crate::data::bepinex_log;
 
 pub fn init() {
-    if let Some(log_file_path) = bepinex_log::file::file_full_path() {
+    if let Some(log_file_path) = bepinex_log::file::full_path() {
         if let Ok(file) = File::create(log_file_path) {
             let subscriber = Registry::default()
                 .with(

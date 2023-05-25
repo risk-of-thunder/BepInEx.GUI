@@ -5,7 +5,7 @@ use std::io::{Cursor, Read};
 use std::mem::size_of;
 use std::net::TcpStream;
 
-use crate::bepinex_log::LogLevel;
+use crate::data::bepinex_log::LogLevel;
 
 pub(crate) fn read_packet_length(tcp_stream: &mut TcpStream) -> Result<usize, std::io::Error> {
     const HEADER_SIZE: usize = size_of::<u32>();

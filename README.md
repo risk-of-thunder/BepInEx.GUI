@@ -16,7 +16,7 @@ BepInEx.GUI is a graphical user interface (GUI) meant to replace the regular con
 
 -   A real console host that saves its position and size on closing and reopening.
 
--   Quickly close the game process and the GUI by pressing CTRL + F5
+-   Quickly close the game process and the GUI by pressing CTRL + F5 or the button in the console tab
 
 ## How it works internally
 

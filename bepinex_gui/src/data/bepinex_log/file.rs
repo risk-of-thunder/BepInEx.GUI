@@ -5,21 +5,19 @@ use std::{
 };
 use zip::write::FileOptions;
 
-use crate::{file_explorer_utils, settings::get_directory_full_path};
+use crate::{backend::file_explorer_utils, paths};
 
-pub fn open_file_explorer_to_log_file_and_zip_if_needed(
-    bepinex_log_output_file_full_path: &PathBuf,
+pub fn open_file_explorer_to_file_and_zip_it_if_needed(
+    file_full_path: &PathBuf,
+    zip_file_name: &str,
 ) {
-    if let Ok(log_file_metadata) = fs::metadata(&bepinex_log_output_file_full_path) {
-        let file_size_bytes = log_file_metadata.len();
+    if let Ok(file_metadata) = fs::metadata(&file_full_path) {
+        let file_size_bytes = file_metadata.len();
         const ONE_MEGABYTE: u64 = 1000000;
         // check log file size, if its more than size limit, just zip it
         if file_size_bytes >= ONE_MEGABYTE {
-            let zip_file_full_path = bepinex_log_output_file_full_path
-                .parent()
-                .unwrap()
-                .join("zipped_log.zip");
-            match zip(&zip_file_full_path, &bepinex_log_output_file_full_path) {
+            let zip_file_full_path = file_full_path.parent().unwrap().join(zip_file_name);
+            match zip(&zip_file_full_path, &file_full_path) {
                 Ok(_) => {
                     file_explorer_utils::highlight_path_in_explorer(&zip_file_full_path);
                 }
@@ -28,7 +26,7 @@ pub fn open_file_explorer_to_log_file_and_zip_if_needed(
                 }
             }
         } else {
-            file_explorer_utils::highlight_path_in_explorer(bepinex_log_output_file_full_path);
+            file_explorer_utils::highlight_path_in_explorer(file_full_path);
         }
     }
 }
@@ -56,8 +54,8 @@ pub fn zip<P: AsRef<Path>, P2: AsRef<Path>>(
     Ok(())
 }
 
-pub(crate) fn file_full_path() -> Option<PathBuf> {
-    if let Some(directory_full_path) = get_directory_full_path() {
+pub(crate) fn full_path() -> Option<PathBuf> {
+    if let Some(directory_full_path) = paths::get_app_config_directory() {
         if std::fs::create_dir_all(&directory_full_path).is_ok() {
             return Some(directory_full_path.join("log.txt"));
         }
