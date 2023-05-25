@@ -267,17 +267,20 @@ impl ConsoleTab {
     fn render_footer(&mut self, data: &AppLaunchConfig, gui_config: &mut Config, ctx: &Context) {
         TopBottomPanel::bottom("footer").show(ctx, |ui| {
             ui.add_space(2.0);
-            ui.label(RichText::new("Log Level Filtering: ").font(FontId::proportional(15.0)));
 
-            let log_level_text = gui_config.log_level_filter.to_string();
-            ui.add(
-                Slider::new(
-                    &mut gui_config.log_level_filter,
-                    LogLevel::Fatal..=LogLevel::All,
-                )
-                .show_value(false)
-                .text(log_level_text),
-            );
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Log Level Filtering: ").font(FontId::proportional(15.0)));
+
+                let log_level_text = gui_config.log_level_filter.to_string();
+                ui.add(
+                    Slider::new(
+                        &mut gui_config.log_level_filter,
+                        LogLevel::Fatal..=LogLevel::All,
+                    )
+                    .show_value(false)
+                    .text(log_level_text),
+                );
+            });
 
             views::BepInExGUI::render_useful_buttons_footer(
                 ui,
