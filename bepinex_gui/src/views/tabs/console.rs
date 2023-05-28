@@ -299,9 +299,9 @@ impl ConsoleTab {
                     .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
                     .show(ctx, |ui| {
                         ui.heading(
-                            r#"The console is meant to be used by mod developers.
-                                If any of your mods is malfunctioning and that you wish to receive help in the #tech-support channel of the discord:
-                                Please use the buttons below and use the "Copy Log File" button, and drag and drop it in the #tech-support channel."#);
+r#"The console is meant to be used by mod developers.
+If any of your mods is malfunctioning and that you wish to receive help in the #tech-support channel of the discord:
+Please use the buttons below and use the "Copy Log File" button, and drag and drop it in the #tech-support channel."#);
 
                         if self.disclaimer.first_time_showing_it {
                             self.disclaimer.time_when_disclaimer_showed_up =
