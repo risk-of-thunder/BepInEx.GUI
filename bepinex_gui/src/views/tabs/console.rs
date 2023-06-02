@@ -2,6 +2,7 @@ use clipboard::*;
 use crossbeam_channel::Receiver;
 use eframe::{egui::*, *};
 use std::{
+    collections::HashMap,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -23,10 +24,10 @@ use super::Tab;
 
 struct LogSelection {
     pub button_just_got_down: bool,
-    pub first_index_of_log_that_is_selected: u32,
+    pub first_index_of_log_that_is_selected: usize,
     pub selected_index_in_mods_combo_box: usize,
-    pub smallest_index_of_hovered_log: u32,
-    pub biggest_index_of_hovered_log: u32,
+    pub smallest_index_of_hovered_log: usize,
+    pub biggest_index_of_hovered_log: usize,
 }
 
 impl LogSelection {
@@ -46,6 +47,7 @@ impl LogSelection {
 
 struct Filter {
     text: String,
+    text_lowercase: String,
 }
 
 struct Scroll {
@@ -63,6 +65,7 @@ pub struct ConsoleTab {
     log_receiver: Receiver<BepInExLogEntry>,
     logs: Vec<BepInExLogEntry>,
     should_exit_app: Arc<AtomicBool>,
+    log_heights: HashMap<usize, f32>,
 }
 
 impl ConsoleTab {
@@ -78,13 +81,14 @@ impl ConsoleTab {
             },
             log_selection: LogSelection {
                 button_just_got_down: false,
-                first_index_of_log_that_is_selected: std::u32::MAX,
+                first_index_of_log_that_is_selected: std::usize::MAX,
                 selected_index_in_mods_combo_box: 0,
-                smallest_index_of_hovered_log: std::u32::MAX,
-                biggest_index_of_hovered_log: std::u32::MAX,
+                smallest_index_of_hovered_log: std::usize::MAX,
+                biggest_index_of_hovered_log: std::usize::MAX,
             },
             filter: Filter {
                 text: Default::default(),
+                text_lowercase: Default::default(),
             },
             scroll: Scroll { last_log_count: 0 },
             target_process_paused: false,
@@ -93,6 +97,7 @@ impl ConsoleTab {
             log_receiver,
             logs: vec![],
             should_exit_app,
+            log_heights: HashMap::new(),
         }
     }
 
@@ -108,11 +113,24 @@ impl ConsoleTab {
                 });
             } else {
                 ui.spacing_mut().scroll_bar_width = 16.;
+
                 ScrollArea::vertical()
                     .drag_to_scroll(false)
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
+                        let clip_rect = ui.clip_rect();
+
                         self.render_logs(gui_config, ui);
+
+                        let is_log_selection_button_down =
+                            self.log_selection.is_log_selection_button_down(ui);
+
+                        if is_log_selection_button_down {
+                            views::utils::egui::scroll_when_trying_to_select_stuff_above_or_under_rect(
+                                ui,
+                                clip_rect,
+                            );
+                        }
                     });
             }
 
@@ -141,24 +159,22 @@ impl ConsoleTab {
 
         let is_log_selection_button_down = self.log_selection.is_log_selection_button_down(ui);
 
-        let mut i = 0;
-        for log in &mut self.logs {
+        let log_count = self.logs.len();
+        for i in 0..log_count {
             Self::render_log(
+                &mut self.log_heights,
                 &mut self.log_selection,
                 &mut self.filter,
-                log,
+                &mut self.logs[i],
                 gui_config,
                 info_log_color,
                 i,
                 ui,
-                clip_rect,
+                &clip_rect,
                 is_log_selection_button_down,
             );
-
-            i += 1;
         }
 
-        let log_count = self.logs.len();
         if gui_config.log_auto_scroll_to_bottom
             && self.scroll.last_log_count != log_count
             && !self.log_selection.button_just_got_down
@@ -194,22 +210,44 @@ impl ConsoleTab {
     }
 
     fn render_log(
+        log_heights: &mut HashMap<usize, f32>,
         log_selection: &mut LogSelection,
         filter: &mut Filter,
         log: &mut BepInExLogEntry,
         gui_config: &Config,
         info_log_color: Color32,
-        i: u32,
+        i: usize,
         ui: &mut Ui,
-        clip_rect: Rect,
+        clip_rect: &Rect,
         is_log_selection_button_down: bool,
     ) {
         if log.level() > gui_config.log_level_filter {
             return;
         }
 
-        if !ConsoleTab::does_log_match_text_filter(&filter.text, log) {
+        if !ConsoleTab::does_log_match_text_filter(&filter.text_lowercase, log) {
             return;
+        }
+
+        let screen_rect = ui.ctx().input(|i| i.screen_rect);
+        let pos_before_log = ui.next_widget_position();
+
+        let mut need_cache_height = false;
+
+        // If too far off of the screen, don't actually render the post, just make some space
+        // so the scrollbar isn't messed up
+        if let Some(height_) = log_heights.get(&i) {
+            let height = *height_;
+            let after_the_bottom = pos_before_log.y > screen_rect.max.y;
+            let before_the_top = pos_before_log.y + height < 0.0;
+
+            if after_the_bottom || before_the_top {
+                // Don't actually render, just make space for scrolling purposes
+                ui.add_space(height);
+                return;
+            }
+        } else {
+            need_cache_height = true;
         }
 
         let log_color = get_color_from_log_level(log, info_log_color);
@@ -223,10 +261,17 @@ impl ConsoleTab {
             is_selected,
             RichText::new(log.data()).color(log_color),
         ));
-        let mut log_rect = ui_log_entry.rect;
-        log_rect.max.x = clip_rect.max.x;
+
+        let pos_after_log = ui.next_widget_position();
+
+        if need_cache_height {
+            log_heights.insert(i, pos_after_log.y - pos_before_log.y);
+        }
 
         if is_log_selection_button_down {
+            let mut log_rect = ui_log_entry.rect;
+            log_rect.max.x = clip_rect.max.x;
+
             if ui.rect_contains_pointer(log_rect) {
                 if !log_selection.button_just_got_down {
                     log_selection.button_just_got_down = true;
@@ -243,20 +288,12 @@ impl ConsoleTab {
                     log_selection.biggest_index_of_hovered_log = i;
                 }
             }
-
-            views::utils::egui::scroll_when_trying_to_select_stuff_above_or_under_rect(
-                ui, clip_rect,
-            );
         }
     }
 
-    fn does_log_match_text_filter(text_filter: &String, log: &BepInExLogEntry) -> bool {
-        if !text_filter.is_empty() {
-            if !log
-                .data()
-                .to_lowercase()
-                .contains(&text_filter.to_lowercase())
-            {
+    fn does_log_match_text_filter(text_filter_lowercase: &String, log: &BepInExLogEntry) -> bool {
+        if !text_filter_lowercase.is_empty() {
+            if !log.data_lowercase().contains(text_filter_lowercase) {
                 return false;
             }
         }
@@ -379,10 +416,12 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
             ))
             .clicked()
         {
+            let target_process_id = data.target_process_id();
+
             if self.target_process_paused {
-                self.target_process_paused = !process::resume(data.target_process_id());
+                self.target_process_paused = !process::resume(target_process_id);
             } else {
-                self.target_process_paused = process::suspend(data.target_process_id());
+                self.target_process_paused = process::suspend(target_process_id);
             }
         }
         pause_game_btn_size
@@ -394,16 +433,23 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
         mods_combo_box: Response,
         gui_config: &mut Config,
     ) {
-        ui.add_sized(
-            mods_combo_box.rect.size(),
-            TextEdit::singleline(&mut self.filter.text)
-                .text_color(if gui_config.dark_mode {
-                    Color32::WHITE
-                } else {
-                    Color32::BLACK
-                })
-                .hint_text(WidgetText::from("Filter Text").color(ui.style().visuals.text_color())),
-        );
+        if ui
+            .add_sized(
+                mods_combo_box.rect.size(),
+                TextEdit::singleline(&mut self.filter.text)
+                    .text_color(if gui_config.dark_mode {
+                        Color32::WHITE
+                    } else {
+                        Color32::BLACK
+                    })
+                    .hint_text(
+                        WidgetText::from("Filter Text").color(ui.style().visuals.text_color()),
+                    ),
+            )
+            .changed()
+        {
+            self.filter.text_lowercase = self.filter.text.to_lowercase();
+        }
     }
 
     fn render_log_mod_filter(&mut self, ui: &mut Ui) -> Response {
@@ -417,13 +463,15 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
             );
 
         if mods_combo_box.changed() {
-            if self.log_selection.selected_index_in_mods_combo_box == 0 {
-                self.filter.text = "".to_string();
+            self.filter.text = if self.log_selection.selected_index_in_mods_combo_box == 0 {
+                "".to_string()
             } else {
-                self.filter.text = self.mods[self.log_selection.selected_index_in_mods_combo_box]
+                self.mods[self.log_selection.selected_index_in_mods_combo_box]
                     .name()
-                    .to_string();
-            }
+                    .to_string()
+            };
+
+            self.filter.text_lowercase = self.filter.text.to_lowercase();
         }
         mods_combo_box
     }
