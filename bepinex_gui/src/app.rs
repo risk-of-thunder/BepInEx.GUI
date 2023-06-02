@@ -94,10 +94,10 @@ impl BepInExGUI {
 
         window::window_topmost_on_target_start::init(self.app_launch_config.target_process_id());
 
-        let (mod_r, log_r) =
+        let (general_tab_mod_r, console_tab_mod_r, log_r) =
             self.init_log_receiver(self.app_launch_config.log_socket_port_receiver());
 
-        self.init_tabs(mod_r, log_r);
+        self.init_tabs(general_tab_mod_r, console_tab_mod_r, log_r);
 
         self.config.bepinex_gui_csharp_cfg_full_path = self
             .app_launch_config
@@ -112,21 +112,35 @@ impl BepInExGUI {
     fn init_log_receiver(
         &mut self,
         log_socket_port_receiver: u16,
-    ) -> (Receiver<BepInExMod>, Receiver<BepInExLogEntry>) {
-        let (mod_s, mod_r) = crossbeam_channel::unbounded();
+    ) -> (
+        Receiver<BepInExMod>,
+        Receiver<BepInExMod>,
+        Receiver<BepInExLogEntry>,
+    ) {
+        let (general_tab_mod_s, general_tab_mod_r) = crossbeam_channel::unbounded();
+        let (console_tab_mod_s, console_tab_mod_r) = crossbeam_channel::unbounded();
         let (log_s, log_r) = crossbeam_channel::unbounded();
 
-        let log_receiver = LogReceiver::new(log_socket_port_receiver, log_s, mod_s);
+        let log_receiver = LogReceiver::new(
+            log_socket_port_receiver,
+            vec![log_s],
+            vec![general_tab_mod_s, console_tab_mod_s],
+        );
         log_receiver.start_thread_loop();
         self.log_receiver_thread = Some(log_receiver);
 
-        (mod_r, log_r)
+        (general_tab_mod_r, console_tab_mod_r, log_r)
     }
 
-    fn init_tabs(&mut self, mod_r: Receiver<BepInExMod>, log_r: Receiver<BepInExLogEntry>) {
-        self.tabs.push(Box::new(GeneralTab::new(mod_r.clone())));
+    fn init_tabs(
+        &mut self,
+        general_tab_mod_r: Receiver<BepInExMod>,
+        console_tab_mod_r: Receiver<BepInExMod>,
+        log_r: Receiver<BepInExLogEntry>,
+    ) {
+        self.tabs.push(Box::new(GeneralTab::new(general_tab_mod_r)));
         self.tabs.push(Box::new(ConsoleTab::new(
-            mod_r.clone(),
+            console_tab_mod_r,
             log_r,
             self.should_exit_app.clone(),
         )));

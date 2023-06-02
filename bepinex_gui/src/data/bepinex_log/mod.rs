@@ -59,9 +59,11 @@ impl Numeric for LogLevel {
     }
 }
 
+#[derive(Clone)]
 pub struct BepInExLogEntry {
     level: LogLevel,
     data: String,
+    data_lowercase: String,
     pub is_selected: bool,
 }
 
@@ -69,7 +71,8 @@ impl BepInExLogEntry {
     pub fn new(level: LogLevel, data: String) -> Self {
         Self {
             level,
-            data,
+            data: data.clone(),
+            data_lowercase: data.to_lowercase(),
             is_selected: false,
         }
     }
@@ -80,5 +83,9 @@ impl BepInExLogEntry {
 
     pub fn data(&self) -> &str {
         self.data.as_ref()
+    }
+
+    pub fn data_lowercase(&self) -> &str {
+        self.data_lowercase.as_ref()
     }
 }
