@@ -19,20 +19,20 @@ use super::LogLevel;
 #[derive(Clone)]
 pub struct LogReceiver {
     log_socket_port_receiver: u16,
-    log_sender: Sender<BepInExLogEntry>,
-    mod_sender: Sender<BepInExMod>,
+    log_senders: Vec<Sender<BepInExLogEntry>>,
+    mod_senders: Vec<Sender<BepInExMod>>,
 }
 
 impl LogReceiver {
     pub fn new(
         log_socket_port_receiver: u16,
-        log_sender: Sender<BepInExLogEntry>,
-        mod_sender: Sender<BepInExMod>,
+        log_senders: Vec<Sender<BepInExLogEntry>>,
+        mod_senders: Vec<Sender<BepInExMod>>,
     ) -> LogReceiver {
         LogReceiver {
             log_socket_port_receiver,
-            log_sender,
-            mod_sender,
+            log_senders,
+            mod_senders,
         }
     }
 
@@ -112,12 +112,16 @@ impl LogReceiver {
                 let mod_version =
                     &mod_info_text[mod_version_start_index + 1..mod_info_text.len() - 1];
 
-                self.mod_sender
-                    .send(BepInExMod::new(mod_name, mod_version))
-                    .unwrap();
+                for mod_sender in &self.mod_senders {
+                    mod_sender
+                        .send(BepInExMod::new(mod_name, mod_version))
+                        .unwrap();
+                }
             }
         }
 
-        self.log_sender.send(log).unwrap();
+        for log_sender in &self.log_senders {
+            log_sender.send(log.clone()).unwrap();
+        }
     }
 }
