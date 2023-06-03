@@ -23,23 +23,28 @@ pub(crate) fn compute_text_size(
     text_size
 }
 
-pub(crate) fn scroll_when_trying_to_select_stuff_above_or_under_rect(ui: &mut Ui, clip_rect: Rect) {
-    if !ui.rect_contains_pointer(clip_rect) {
+pub(crate) fn scroll_when_trying_to_select_stuff_above_or_under_rect(
+    ui: &mut Ui,
+    rect: Rect,
+) -> Option<Vec2> {
+    if !ui.rect_contains_pointer(rect) {
         if let Some(interact_pos) = ui.input(|i| i.pointer.interact_pos()) {
             let mut scroll = Vec2::new(0., 0.);
-            let dist = clip_rect.bottom() - interact_pos.y;
+            let dist = rect.bottom() - interact_pos.y;
 
-            const SCROLL_SPEED: f32 = 0.5;
+            const SCROLL_SPEED: f32 = 0.25;
 
             if dist < 0. {
                 scroll.y = dist;
                 scroll.y *= SCROLL_SPEED;
             } else if dist > 0. {
-                scroll.y = clip_rect.top() - interact_pos.y;
+                scroll.y = rect.top() - interact_pos.y;
                 scroll.y *= SCROLL_SPEED;
             }
 
-            ui.scroll_with_delta(scroll);
+            return Some(scroll);
         }
     }
+
+    None
 }

@@ -23,35 +23,86 @@ use crate::{
 use super::Tab;
 
 struct LogSelection {
+    pub button_currently_down: bool,
     pub button_just_got_down: bool,
-    pub first_index_of_log_that_is_selected: usize,
-    pub selected_index_in_mods_combo_box: usize,
-    pub smallest_index_of_hovered_log: usize,
-    pub biggest_index_of_hovered_log: usize,
+    pub index_of_first_selected_log: usize,
+    pub index_of_last_selected_log: usize,
+    pub index_of_last_unselected_log: usize,
+    pub cursor_pos_when_button_was_pressed: Option<Pos2>,
 }
 
 impl LogSelection {
-    fn is_log_selection_button_down(&mut self, ui: &mut Ui) -> bool {
-        let is_log_selection_button_down = ui.ctx().input(|i| i.pointer.primary_down());
-        let is_log_selection_button_up = !ui
-            .ctx()
-            .input(|i| i.pointer.button_down(PointerButton::Primary));
+    fn update_pointer_state(&mut self, ctx: &Context) {
+        self.button_currently_down = ctx.input(|i| i.pointer.primary_down());
+        self.button_just_got_down = ctx.input(|i| i.pointer.primary_pressed());
+        self.cursor_pos_when_button_was_pressed = ctx.input(|i| i.pointer.press_origin());
+    }
 
-        if is_log_selection_button_up {
-            self.button_just_got_down = false;
+    fn update_selection(
+        &mut self,
+        ui_log_entry: Response,
+        clip_rect: &Rect,
+        ui: &Ui,
+        log_index: usize,
+    ) {
+        if self.button_currently_down {
+            let mut log_rect = ui_log_entry.rect;
+            // make it so that just selecting anywhere within the log line work
+            log_rect.max.x = clip_rect.max.x;
+            // make it so that there is no dead space between the log entries for log selection purposes
+            log_rect.min.y += 4.;
+            log_rect.max.y += 4.;
+
+            if ui.rect_contains_pointer(log_rect) {
+                if self.button_just_got_down {
+                    let is_a_new_pressed_log = self.index_of_first_selected_log != log_index;
+                    if is_a_new_pressed_log {
+                        self.index_of_first_selected_log = log_index;
+                        self.index_of_last_selected_log = log_index;
+                    } else {
+                        // we just pressed the same button, unselect all
+                        self.index_of_first_selected_log = usize::MAX;
+                        self.index_of_last_selected_log = usize::MAX;
+
+                        // we remember the last unselected button,
+                        // because the user may still hold the button and it may instantly reselect it the next frame
+                        self.index_of_last_unselected_log = log_index;
+                    }
+                } else {
+                    // user is holding the button, and hovering a log entry
+
+                    let user_is_holding_and_selecting_a_new_log =
+                        self.index_of_last_unselected_log != log_index;
+                    if user_is_holding_and_selecting_a_new_log {
+                        self.index_of_last_selected_log = log_index;
+
+                        // fix an edge case where the user just unselected a log,
+                        // and is now selecting the one just above or just below,
+                        // all within the same keypress / kept holding
+                        if self.index_of_first_selected_log == usize::MAX {
+                            self.index_of_first_selected_log = log_index;
+                        }
+                    }
+                }
+            } else {
+                if self.button_just_got_down {
+                    self.index_of_first_selected_log = usize::MAX;
+                    self.index_of_last_selected_log = usize::MAX;
+                }
+            }
         }
-
-        is_log_selection_button_down
     }
 }
 
 struct Filter {
     text: String,
     text_lowercase: String,
+    pub selected_index_in_mods_combo_box: usize,
 }
 
 struct Scroll {
     last_log_count: usize,
+    pending_scroll: Option<Vec2>,
 }
 
 pub struct ConsoleTab {
@@ -80,17 +131,22 @@ impl ConsoleTab {
                 time_when_disclaimer_showed_up: None,
             },
             log_selection: LogSelection {
+                button_currently_down: false,
                 button_just_got_down: false,
-                first_index_of_log_that_is_selected: std::usize::MAX,
-                selected_index_in_mods_combo_box: 0,
-                smallest_index_of_hovered_log: std::usize::MAX,
-                biggest_index_of_hovered_log: std::usize::MAX,
+                index_of_first_selected_log: usize::MAX,
+                index_of_last_selected_log: usize::MAX,
+                index_of_last_unselected_log: usize::MAX,
+                cursor_pos_when_button_was_pressed: None,
             },
             filter: Filter {
                 text: Default::default(),
                 text_lowercase: Default::default(),
+                selected_index_in_mods_combo_box: 0,
             },
-            scroll: Scroll { last_log_count: 0 },
+            scroll: Scroll {
+                last_log_count: 0,
+                pending_scroll: None,
+            },
             target_process_paused: false,
             mod_receiver,
             mods: vec![BepInExMod::new("", "")],
@@ -101,44 +157,54 @@ impl ConsoleTab {
         }
     }
 
-    fn render(&mut self, data: &AppLaunchConfig, gui_config: &Config, ctx: &Context) {
+    fn render(&mut self, gui_config: &Config, ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
             if self.logs.is_empty() {
-                ui.vertical_centered_justified(|ui| {
-                    let loading_text = "Loading ⌛";
-                    let text_size =
-                        views::utils::egui::compute_text_size(ui, loading_text, true, false, None);
-                    ui.add_space(ui.available_height() / 2. - text_size.y);
-                    ui.heading(loading_text);
-                });
+                render_loading_text(ui);
             } else {
-                ui.spacing_mut().scroll_bar_width = 16.;
-
-                ScrollArea::vertical()
-                    .drag_to_scroll(false)
-                    .auto_shrink([false; 2])
-                    .show(ui, |ui| {
-                        let clip_rect = ui.clip_rect();
-
-                        self.render_logs(gui_config, ui);
-
-                        let is_log_selection_button_down =
-                            self.log_selection.is_log_selection_button_down(ui);
-
-                        if is_log_selection_button_down {
-                            views::utils::egui::scroll_when_trying_to_select_stuff_above_or_under_rect(
-                                ui,
-                                clip_rect,
-                            );
-                        }
-                    });
-            }
-
-            if ui.ctx().input(|i| i.modifiers.command) && ui.ctx().input(|i| i.key_pressed(Key::F5))
-            {
-                self.kill_gui_and_target(data);
+                self.render_console_scroll_area(ui, gui_config);
             }
         });
+    }
+
+    fn render_console_scroll_area(&mut self, ui: &mut Ui, gui_config: &Config) {
+        ui.spacing_mut().scroll_bar_width = 16.;
+
+        let scroll_area = ScrollArea::vertical()
+            .drag_to_scroll(false)
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                if self.log_selection.button_just_got_down {
+                    self.logs.iter_mut().for_each(|log| log.is_selected = false);
+                }
+
+                self.render_logs(gui_config, ui);
+
+                if let Some(scroll) = self.scroll.pending_scroll {
+                    ui.scroll_with_delta(scroll);
+                    self.scroll.pending_scroll = None;
+                }
+            });
+
+        self.auto_scroll_to_selection(scroll_area, ui);
+    }
+
+    fn auto_scroll_to_selection(
+        &mut self,
+        scroll_area: scroll_area::ScrollAreaOutput<()>,
+        ui: &mut Ui,
+    ) {
+        if let Some(cursor_pos) = self.log_selection.cursor_pos_when_button_was_pressed {
+            if self.log_selection.button_currently_down
+                && scroll_area.inner_rect.contains(cursor_pos)
+            {
+                self.scroll.pending_scroll =
+                    views::utils::egui::scroll_when_trying_to_select_stuff_above_or_under_rect(
+                        ui,
+                        scroll_area.inner_rect,
+                    );
+            }
+        }
     }
 
     fn kill_gui_and_target(&mut self, data: &AppLaunchConfig) {
@@ -157,21 +223,24 @@ impl ConsoleTab {
             Color32::BLACK
         };
 
-        let is_log_selection_button_down = self.log_selection.is_log_selection_button_down(ui);
-
         let log_count = self.logs.len();
         for i in 0..log_count {
             Self::render_log(
                 &mut self.log_heights,
-                &mut self.log_selection,
                 &mut self.filter,
-                &mut self.logs[i],
                 gui_config,
                 info_log_color,
                 i,
                 ui,
                 &clip_rect,
-                is_log_selection_button_down,
+                &mut self.log_selection,
+                &mut self.logs[i],
+            );
+
+            self.logs[i].is_selected = is_between(
+                i,
+                self.log_selection.index_of_first_selected_log,
+                self.log_selection.index_of_last_selected_log,
             );
         }
 
@@ -182,8 +251,10 @@ impl ConsoleTab {
             ui.scroll_with_delta(Vec2::new(0., f32::NEG_INFINITY));
             self.scroll.last_log_count = log_count;
         }
+    }
 
-        if ui.ctx().input(|i| i.modifiers.command) && ui.ctx().input(|i| i.key_pressed(Key::C)) {
+    fn update_copy_logs_to_clipboard(&mut self, ctx: &Context) {
+        if ctx.input(|i| i.modifiers.command) && ctx.input(|i| i.key_pressed(Key::C)) {
             match ClipboardProvider::new() {
                 Ok(ctx_) => {
                     let mut ctx: ClipboardContext = ctx_;
@@ -211,15 +282,14 @@ impl ConsoleTab {
 
     fn render_log(
         log_heights: &mut HashMap<usize, f32>,
-        log_selection: &mut LogSelection,
         filter: &mut Filter,
-        log: &mut BepInExLogEntry,
         gui_config: &Config,
         info_log_color: Color32,
         i: usize,
         ui: &mut Ui,
         clip_rect: &Rect,
-        is_log_selection_button_down: bool,
+        log_selection: &mut LogSelection,
+        log: &mut BepInExLogEntry,
     ) {
         if log.level() > gui_config.log_level_filter {
             return;
@@ -229,66 +299,31 @@ impl ConsoleTab {
             return;
         }
 
-        let screen_rect = ui.ctx().input(|i| i.screen_rect);
         let pos_before_log = ui.next_widget_position();
 
-        let mut need_cache_height = false;
-
-        // If too far off of the screen, don't actually render the post, just make some space
-        // so the scrollbar isn't messed up
-        if let Some(height_) = log_heights.get(&i) {
-            let height = *height_;
-            let after_the_bottom = pos_before_log.y > screen_rect.max.y;
-            let before_the_top = pos_before_log.y + height < 0.0;
-
-            if after_the_bottom || before_the_top {
-                // Don't actually render, just make space for scrolling purposes
-                ui.add_space(height);
-                return;
-            }
-        } else {
-            need_cache_height = true;
+        let log_render_decision = make_log_render_decision(
+            log_heights,
+            i,
+            pos_before_log,
+            ui.ctx().input(|i| i.screen_rect),
+            ui,
+        );
+        if log_render_decision == LogRenderDecision::SkipAndFakeRender {
+            return;
         }
 
         let log_color = get_color_from_log_level(log, info_log_color);
 
-        let is_selected = i >= log_selection.smallest_index_of_hovered_log
-            && i <= log_selection.biggest_index_of_hovered_log;
-
-        log.is_selected = is_selected;
-
-        let ui_log_entry = ui.add(SelectableLabel::new(
-            is_selected,
-            RichText::new(log.data()).color(log_color),
-        ));
+        let ui_log_entry = make_ui_log_entry(ui, log, log_color);
 
         let pos_after_log = ui.next_widget_position();
 
-        if need_cache_height {
-            log_heights.insert(i, pos_after_log.y - pos_before_log.y);
+        if log_render_decision == LogRenderDecision::RenderAndCacheHeight {
+            let log_height = pos_after_log.y - pos_before_log.y;
+            log_heights.insert(i, log_height);
         }
 
-        if is_log_selection_button_down {
-            let mut log_rect = ui_log_entry.rect;
-            log_rect.max.x = clip_rect.max.x;
-
-            if ui.rect_contains_pointer(log_rect) {
-                if !log_selection.button_just_got_down {
-                    log_selection.button_just_got_down = true;
-                    log_selection.first_index_of_log_that_is_selected = i;
-                    log_selection.smallest_index_of_hovered_log = i;
-                    log_selection.biggest_index_of_hovered_log = i;
-                }
-
-                if i <= log_selection.first_index_of_log_that_is_selected {
-                    log_selection.smallest_index_of_hovered_log = i;
-                }
-
-                if i >= log_selection.first_index_of_log_that_is_selected {
-                    log_selection.biggest_index_of_hovered_log = i;
-                }
-            }
-        }
+        log_selection.update_selection(ui_log_entry, clip_rect, ui, i);
     }
 
     fn does_log_match_text_filter(text_filter_lowercase: &String, log: &BepInExLogEntry) -> bool {
@@ -457,16 +492,16 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
             .width(200.)
             .show_index(
                 ui,
-                &mut self.log_selection.selected_index_in_mods_combo_box,
+                &mut self.filter.selected_index_in_mods_combo_box,
                 self.mods.len(),
                 |i| self.mods[i].name(),
             );
 
         if mods_combo_box.changed() {
-            self.filter.text = if self.log_selection.selected_index_in_mods_combo_box == 0 {
+            self.filter.text = if self.filter.selected_index_in_mods_combo_box == 0 {
                 "".to_string()
             } else {
-                self.mods[self.log_selection.selected_index_in_mods_combo_box]
+                self.mods[self.filter.selected_index_in_mods_combo_box]
                     .name()
                     .to_string()
             };
@@ -475,6 +510,53 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
         }
         mods_combo_box
     }
+}
+
+#[derive(PartialEq)]
+enum LogRenderDecision {
+    SkipAndFakeRender,
+    RenderAndCacheHeight,
+    RenderNormally,
+}
+
+fn make_log_render_decision(
+    log_heights: &mut HashMap<usize, f32>,
+    i: usize,
+    pos_before_log: Pos2,
+    screen_rect: Rect,
+    ui: &mut Ui,
+) -> LogRenderDecision {
+    if let Some(height_) = log_heights.get(&i) {
+        let height = *height_;
+        let after_the_bottom = pos_before_log.y > screen_rect.max.y;
+        let before_the_top = pos_before_log.y + height < 0.0;
+
+        if after_the_bottom || before_the_top {
+            // Don't actually render, just make space for scrolling purposes
+            ui.add_space(height);
+            return LogRenderDecision::SkipAndFakeRender;
+        }
+    } else {
+        return LogRenderDecision::RenderAndCacheHeight;
+    }
+    return LogRenderDecision::RenderNormally;
+}
+
+fn render_loading_text(ui: &mut Ui) {
+    ui.vertical_centered_justified(|ui| {
+        let loading_text = "Loading ⌛";
+        let text_size = views::utils::egui::compute_text_size(ui, loading_text, true, false, None);
+        ui.add_space(ui.available_height() / 2. - text_size.y);
+        ui.heading(loading_text);
+    });
+}
+
+fn make_ui_log_entry(ui: &mut Ui, log: &mut BepInExLogEntry, log_color: Color32) -> Response {
+    let ui_log_entry = ui.add(SelectableLabel::new(
+        log.is_selected,
+        RichText::new(log.data()).color(log_color),
+    ));
+    ui_log_entry
 }
 
 fn get_color_from_log_level(log: &mut BepInExLogEntry, info_log_color: Color32) -> Color32 {
@@ -530,6 +612,8 @@ impl Tab for ConsoleTab {
         ctx: &eframe::egui::Context,
         _frame: &mut eframe::Frame,
     ) {
+        self.log_selection.update_pointer_state(ctx);
+
         self.update_mod_receiver();
         self.update_log_receiver();
 
@@ -538,7 +622,13 @@ impl Tab for ConsoleTab {
         } else {
             self.render_footer(data, gui_config, ctx);
 
-            self.render(data, gui_config, ctx);
+            self.render(gui_config, ctx);
+
+            self.update_copy_logs_to_clipboard(ctx);
+        }
+
+        if ctx.input(|i| i.modifiers.command) && ctx.input(|i| i.key_pressed(Key::F5)) {
+            self.kill_gui_and_target(data);
         }
     }
 }
@@ -580,4 +670,11 @@ impl ConsoleTab {
             }
         }
     }
+}
+
+fn is_between<T: Ord + std::marker::Copy>(value: T, bound1: T, bound2: T) -> bool {
+    let lower_bound = std::cmp::min(bound1, bound2);
+    let upper_bound = std::cmp::max(bound1, bound2);
+
+    value >= lower_bound && value <= upper_bound
 }
