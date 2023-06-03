@@ -23,35 +23,31 @@ use crate::{
 use super::Tab;
 
 struct LogSelection {
+    pub button_currently_down: bool,
     pub button_just_got_down: bool,
-    pub first_index_of_log_that_is_selected: usize,
-    pub selected_index_in_mods_combo_box: usize,
-    pub smallest_index_of_hovered_log: usize,
-    pub biggest_index_of_hovered_log: usize,
+    pub index_of_first_selected_log: usize,
+    pub index_of_last_selected_log: usize,
+    pub index_of_last_unselected_log: usize,
+    pub cursor_pos_when_button_was_pressed: Option<Pos2>,
 }
 
 impl LogSelection {
-    fn is_log_selection_button_down(&mut self, ui: &mut Ui) -> bool {
-        let is_log_selection_button_down = ui.ctx().input(|i| i.pointer.primary_down());
-        let is_log_selection_button_up = !ui
-            .ctx()
-            .input(|i| i.pointer.button_down(PointerButton::Primary));
-
-        if is_log_selection_button_up {
-            self.button_just_got_down = false;
-        }
-
-        is_log_selection_button_down
+    fn update(&mut self, ui: &mut Ui) {
+        self.button_currently_down = ui.ctx().input(|i| i.pointer.primary_down());
+        self.button_just_got_down = ui.ctx().input(|i| i.pointer.primary_pressed());
+        self.cursor_pos_when_button_was_pressed = ui.ctx().input(|i| i.pointer.press_origin());
     }
 }
 
 struct Filter {
     text: String,
     text_lowercase: String,
+    pub selected_index_in_mods_combo_box: usize,
 }
 
 struct Scroll {
     last_log_count: usize,
+    pending_scroll: Option<Vec2>,
 }
 
 pub struct ConsoleTab {
@@ -80,17 +76,22 @@ impl ConsoleTab {
                 time_when_disclaimer_showed_up: None,
             },
             log_selection: LogSelection {
+                button_currently_down: false,
                 button_just_got_down: false,
-                first_index_of_log_that_is_selected: std::usize::MAX,
-                selected_index_in_mods_combo_box: 0,
-                smallest_index_of_hovered_log: std::usize::MAX,
-                biggest_index_of_hovered_log: std::usize::MAX,
+                index_of_first_selected_log: usize::MAX,
+                index_of_last_selected_log: usize::MAX,
+                index_of_last_unselected_log: usize::MAX,
+                cursor_pos_when_button_was_pressed: None,
             },
             filter: Filter {
                 text: Default::default(),
                 text_lowercase: Default::default(),
+                selected_index_in_mods_combo_box: 0,
             },
-            scroll: Scroll { last_log_count: 0 },
+            scroll: Scroll {
+                last_log_count: 0,
+                pending_scroll: None,
+            },
             target_process_paused: false,
             mod_receiver,
             mods: vec![BepInExMod::new("", "")],
@@ -114,24 +115,34 @@ impl ConsoleTab {
             } else {
                 ui.spacing_mut().scroll_bar_width = 16.;
 
-                ScrollArea::vertical()
+                let scroll_area = ScrollArea::vertical()
                     .drag_to_scroll(false)
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
-                        let clip_rect = ui.clip_rect();
+                        self.log_selection.update(ui);
+                        if self.log_selection.button_just_got_down {
+                            self.logs.iter_mut().for_each(|log| log.is_selected = false);
+                        }
 
                         self.render_logs(gui_config, ui);
 
-                        let is_log_selection_button_down =
-                            self.log_selection.is_log_selection_button_down(ui);
-
-                        if is_log_selection_button_down {
-                            views::utils::egui::scroll_when_trying_to_select_stuff_above_or_under_rect(
-                                ui,
-                                clip_rect,
-                            );
+                        if let Some(scroll) = self.scroll.pending_scroll {
+                            ui.scroll_with_delta(scroll);
+                            self.scroll.pending_scroll = None;
                         }
                     });
+
+                if let Some(cursor_pos) = self.log_selection.cursor_pos_when_button_was_pressed {
+                    if self.log_selection.button_currently_down
+                        && scroll_area.inner_rect.contains(cursor_pos)
+                    {
+                        self.scroll.pending_scroll =
+                        views::utils::egui::scroll_when_trying_to_select_stuff_above_or_under_rect(
+                            ui,
+                            scroll_area.inner_rect,
+                        );
+                    }
+                }
             }
 
             if ui.ctx().input(|i| i.modifiers.command) && ui.ctx().input(|i| i.key_pressed(Key::F5))
@@ -157,21 +168,24 @@ impl ConsoleTab {
             Color32::BLACK
         };
 
-        let is_log_selection_button_down = self.log_selection.is_log_selection_button_down(ui);
-
         let log_count = self.logs.len();
         for i in 0..log_count {
             Self::render_log(
                 &mut self.log_heights,
-                &mut self.log_selection,
                 &mut self.filter,
-                &mut self.logs[i],
                 gui_config,
                 info_log_color,
                 i,
                 ui,
                 &clip_rect,
-                is_log_selection_button_down,
+                &mut self.log_selection,
+                &mut self.logs[i],
+            );
+
+            self.logs[i].is_selected = is_between(
+                i,
+                self.log_selection.index_of_first_selected_log,
+                self.log_selection.index_of_last_selected_log,
             );
         }
 
@@ -211,15 +225,14 @@ impl ConsoleTab {
 
     fn render_log(
         log_heights: &mut HashMap<usize, f32>,
-        log_selection: &mut LogSelection,
         filter: &mut Filter,
-        log: &mut BepInExLogEntry,
         gui_config: &Config,
         info_log_color: Color32,
         i: usize,
         ui: &mut Ui,
         clip_rect: &Rect,
-        is_log_selection_button_down: bool,
+        log_selection: &mut LogSelection,
+        log: &mut BepInExLogEntry,
     ) {
         if log.level() > gui_config.log_level_filter {
             return;
@@ -252,13 +265,8 @@ impl ConsoleTab {
 
         let log_color = get_color_from_log_level(log, info_log_color);
 
-        let is_selected = i >= log_selection.smallest_index_of_hovered_log
-            && i <= log_selection.biggest_index_of_hovered_log;
-
-        log.is_selected = is_selected;
-
         let ui_log_entry = ui.add(SelectableLabel::new(
-            is_selected,
+            log.is_selected,
             RichText::new(log.data()).color(log_color),
         ));
 
@@ -268,24 +276,49 @@ impl ConsoleTab {
             log_heights.insert(i, pos_after_log.y - pos_before_log.y);
         }
 
-        if is_log_selection_button_down {
+        if log_selection.button_currently_down {
             let mut log_rect = ui_log_entry.rect;
+            // make it so that just selecting anywhere within the log line work
             log_rect.max.x = clip_rect.max.x;
+            // make it so that there is no dead space between the log entries for log selection purposes
+            log_rect.min.y += 4.;
+            log_rect.max.y += 4.;
 
             if ui.rect_contains_pointer(log_rect) {
-                if !log_selection.button_just_got_down {
-                    log_selection.button_just_got_down = true;
-                    log_selection.first_index_of_log_that_is_selected = i;
-                    log_selection.smallest_index_of_hovered_log = i;
-                    log_selection.biggest_index_of_hovered_log = i;
-                }
+                if log_selection.button_just_got_down {
+                    let is_a_new_pressed_log = log_selection.index_of_first_selected_log != i;
+                    if is_a_new_pressed_log {
+                        log_selection.index_of_first_selected_log = i;
+                        log_selection.index_of_last_selected_log = i;
+                    } else {
+                        // we just pressed the same button, unselect all
+                        log_selection.index_of_first_selected_log = usize::MAX;
+                        log_selection.index_of_last_selected_log = usize::MAX;
 
-                if i <= log_selection.first_index_of_log_that_is_selected {
-                    log_selection.smallest_index_of_hovered_log = i;
-                }
+                        // we remember the last unselected button,
+                        // because the user may still hold the button and it may instantly reselect it the next frame
+                        log_selection.index_of_last_unselected_log = i;
+                    }
+                } else {
+                    // user is holding the button, and hovering a log entry
 
-                if i >= log_selection.first_index_of_log_that_is_selected {
-                    log_selection.biggest_index_of_hovered_log = i;
+                    let user_is_holding_and_selecting_a_new_log =
+                        log_selection.index_of_last_unselected_log != i;
+                    if user_is_holding_and_selecting_a_new_log {
+                        log_selection.index_of_last_selected_log = i;
+
+                        // fix an edge case where the user just unselected a log,
+                        // and is now selecting the one just above or just below,
+                        // all within the same keypress / kept holding
+                        if log_selection.index_of_first_selected_log == usize::MAX {
+                            log_selection.index_of_first_selected_log = i;
+                        }
+                    }
+                }
+            } else {
+                if log_selection.button_just_got_down {
+                    log_selection.index_of_first_selected_log = usize::MAX;
+                    log_selection.index_of_last_selected_log = usize::MAX;
                 }
             }
         }
@@ -457,16 +490,16 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
             .width(200.)
             .show_index(
                 ui,
-                &mut self.log_selection.selected_index_in_mods_combo_box,
+                &mut self.filter.selected_index_in_mods_combo_box,
                 self.mods.len(),
                 |i| self.mods[i].name(),
             );
 
         if mods_combo_box.changed() {
-            self.filter.text = if self.log_selection.selected_index_in_mods_combo_box == 0 {
+            self.filter.text = if self.filter.selected_index_in_mods_combo_box == 0 {
                 "".to_string()
             } else {
-                self.mods[self.log_selection.selected_index_in_mods_combo_box]
+                self.mods[self.filter.selected_index_in_mods_combo_box]
                     .name()
                     .to_string()
             };
@@ -580,4 +613,11 @@ impl ConsoleTab {
             }
         }
     }
+}
+
+fn is_between<T: Ord + std::marker::Copy>(value: T, bound1: T, bound2: T) -> bool {
+    let lower_bound = std::cmp::min(bound1, bound2);
+    let upper_bound = std::cmp::max(bound1, bound2);
+
+    value >= lower_bound && value <= upper_bound
 }
