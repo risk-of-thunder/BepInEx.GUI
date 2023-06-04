@@ -71,37 +71,31 @@ impl Config {
 
         let mut current_settings_category_name: &str;
 
-        for line_ in reader.lines() {
-            match line_ {
-                Ok(line) => {
-                    if line.starts_with('[') {
-                        current_settings_category_name = line.split('[').collect::<Vec<&str>>()[1]
-                            .split(']')
-                            .collect::<Vec<&str>>()[0];
-                        tracing::info!(
-                            "current_settings_category_name: {}",
-                            current_settings_category_name
-                        );
-                    } else if line.starts_with("##") {
-                    } else if line.starts_with("# ") {
-                    } else if line.contains('=') {
-                        let setting = line.split('=').collect::<Vec<&str>>();
-                        let setting_name = setting[0].trim();
-                        let settings_current_value = setting[1].trim();
+        for line in reader.lines().flatten() {
+            if line.starts_with('[') {
+                current_settings_category_name = line.split('[').collect::<Vec<&str>>()[1]
+                    .split(']')
+                    .collect::<Vec<&str>>()[0];
+                tracing::info!(
+                    "current_settings_category_name: {}",
+                    current_settings_category_name
+                );
+            } else if line.starts_with("##") || line.starts_with("# ") {
+            } else if line.contains('=') {
+                let setting = line.split('=').collect::<Vec<&str>>();
+                let setting_name = setting[0].trim();
+                let settings_current_value = setting[1].trim();
 
-                        let bool_setting = settings_current_value.parse::<bool>();
-                        if let Ok(bool_value) = bool_setting {
-                            tracing::info!("{:?}: {:?}", setting_name, bool_value);
-                            if setting_name == "Close Window When Game Loaded" {
-                                self.close_window_when_game_loaded = bool_value;
-                            } else if setting_name == "Close Window When Game Closes" {
-                                self.close_window_when_game_closes
-                                    .store(bool_value, Ordering::Relaxed);
-                            }
-                        }
+                let bool_setting = settings_current_value.parse::<bool>();
+                if let Ok(bool_value) = bool_setting {
+                    tracing::info!("{:?}: {:?}", setting_name, bool_value);
+                    if setting_name == "Close Window When Game Loaded" {
+                        self.close_window_when_game_loaded = bool_value;
+                    } else if setting_name == "Close Window When Game Closes" {
+                        self.close_window_when_game_closes
+                            .store(bool_value, Ordering::Relaxed);
                     }
                 }
-                Err(_) => {}
             }
         }
 
@@ -117,8 +111,8 @@ impl Config {
 
         let mut lines: Vec<String> = Vec::new();
 
-        for line_ in reader.lines() {
-            match line_ {
+        for res in reader.lines() {
+            match res {
                 Ok(line_) => {
                     let mut line = line_.to_string();
                     if line_.contains('=') {
@@ -160,10 +154,8 @@ impl Config {
 }
 
 pub fn get_app_ron_file_full_path() -> Option<PathBuf> {
-    if let Some(proj_dirs) = directories_next::ProjectDirs::from("", "", app::NAME) {
+    directories_next::ProjectDirs::from("", "", app::NAME).map(|proj_dirs| {
         let data_dir = proj_dirs.data_dir().to_path_buf();
-        Some(data_dir.join("app.ron"))
-    } else {
-        None
-    }
+        data_dir.join("app.ron")
+    })
 }

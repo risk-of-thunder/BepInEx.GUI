@@ -1,4 +1,8 @@
-use std::{os::windows::process::CommandExt, path::PathBuf, process::Command};
+use std::{
+    os::windows::process::CommandExt,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 pub fn open_path_in_explorer(file: &PathBuf) {
     if let Err(e) = (|| {
@@ -21,22 +25,23 @@ pub fn open_path_in_explorer(file: &PathBuf) {
     }
 }
 
-pub fn highlight_path_in_explorer(file: &std::path::PathBuf) {
+pub fn highlight_path_in_explorer(file: &Path) {
     if let Err(e) = (|| {
         #[cfg(target_os = "windows")]
         {
             if let Some(s) = file.to_str() {
-                let mut s = s.replace("/", r#"\"#);
-                s.push_str("\"");
+                let mut s = s.replace('/', r#"\"#);
+                s.push('\"');
                 let s = s.as_str();
+
                 return Command::new("explorer")
                     .raw_arg("/select,\"".to_string() + s)
                     .spawn();
             } else {
-                return Err(std::io::Error::new(
+                Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     "Can't convert PathBuf to_str",
-                ));
+                ))
             }
         }
 

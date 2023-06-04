@@ -34,7 +34,7 @@ fn find_modding_discord_from_target_process_name(
     let json = reqwest::blocking::get(URL).and_then(|resp| resp.text())?;
 
     let communities = serde_json::from_str::<Communities>(&json)
-        .and_then(|c| Ok(c.results))?
+        .map(|c| c.results)?
         .ok_or("no communities.results")?;
 
     let sys = sysinfo::System::new_all();
@@ -45,7 +45,7 @@ fn find_modding_discord_from_target_process_name(
 
     let proc_name_osstring = Path::new(&proc.name().to_lowercase())
         .file_stem()
-        .and_then(|s| Some(s.to_os_string()))
+        .map(|s| s.to_os_string())
         .ok_or("failed getting proc name from proc")?
         .into_string();
 
@@ -58,7 +58,7 @@ fn find_modding_discord_from_target_process_name(
     for community in communities {
         let community_name_lower = community
             .name
-            .and_then(|n| Some(n.to_lowercase().to_string()))
+            .map(|n| n.to_lowercase())
             .ok_or("failed lowercasing")?;
 
         if proc_name.contains(&community_name_lower) || community_name_lower.contains(&proc_name) {
@@ -69,7 +69,7 @@ fn find_modding_discord_from_target_process_name(
         }
     }
 
-    Err(format!("No community matching target process name {}", proc_name).into())
+    Err(format!("No community matching target process name {proc_name}").into())
 }
 
 pub fn open_modding_discord(target_process_id: Pid) {

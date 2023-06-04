@@ -17,7 +17,7 @@ impl BepInExGUI {
         // Ideally this would be done in a init function, not constantly checked in an update function
         // L from eframe
         if !self.is_window_title_set {
-            frame.set_window_title(&self.app_launch_config.window_title());
+            frame.set_window_title(self.app_launch_config.window_title());
             self.is_window_title_set = true;
         }
 

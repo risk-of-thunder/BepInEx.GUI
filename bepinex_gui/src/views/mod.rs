@@ -1,4 +1,4 @@
-pub(crate) use std::path::PathBuf;
+use std::path::PathBuf;
 
 use eframe::{
     self,
@@ -14,10 +14,10 @@ use crate::{
     data::bepinex_log,
 };
 
-pub(crate) mod components;
-pub(crate) mod disclaimer;
-pub(crate) mod tabs;
-pub(crate) mod utils;
+pub mod components;
+pub mod disclaimer;
+pub mod tabs;
+pub mod utils;
 
 impl BepInExGUI {
     pub(crate) fn view_update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
@@ -55,8 +55,7 @@ impl BepInExGUI {
                 ui.spacing_mut().item_spacing.x = 1.;
                 ui.spacing_mut().item_spacing.y = 1.;
 
-                let mut i = 0;
-                for tab in &self.tabs {
+                for (i, tab) in self.tabs.iter().enumerate() {
                     if ui
                         .add_sized(
                             button_size,
@@ -66,8 +65,6 @@ impl BepInExGUI {
                     {
                         self.config.selected_tab_index = i;
                     }
-
-                    i += 1;
                 }
             });
 

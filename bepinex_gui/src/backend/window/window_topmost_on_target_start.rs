@@ -45,7 +45,7 @@ pub fn init(&self, target_process_id: Pid) {}
 fn is_current_process_in_front_of_target_process_window(target_process_id_: Pid) -> bool {
     unsafe {
         static mut CURRENT_PROCESS_ID: u32 = 0;
-        CURRENT_PROCESS_ID = GetCurrentProcessId() as u32;
+        CURRENT_PROCESS_ID = GetCurrentProcessId();
 
         static mut TARGET_PROCESS_ID: u32 = 0;
         TARGET_PROCESS_ID = std::mem::transmute_copy(&target_process_id_);
@@ -64,7 +64,7 @@ fn is_current_process_in_front_of_target_process_window(target_process_id_: Pid)
                 }
 
                 let mut proc_id: DWORD = 0 as DWORD;
-                let _ = GetWindowThreadProcessId(window, &mut proc_id as *mut DWORD);
+                let _ = GetWindowThreadProcessId(window, std::ptr::addr_of_mut!(proc_id));
                 if proc_id == TARGET_PROCESS_ID {
                     let is_current_proc_in_front = GOT_CURRENT_PROC_WINDOW;
                     if is_current_proc_in_front {
@@ -89,7 +89,7 @@ fn is_current_process_in_front_of_target_process_window(target_process_id_: Pid)
 
         EnumWindows(Some(enum_window), 0 as LPARAM);
 
-        return GOT_CURRENT_PROC_WINDOW && GOT_RESULT;
+        GOT_CURRENT_PROC_WINDOW && GOT_RESULT
     }
 }
 #[cfg(not(windows))]
@@ -98,7 +98,7 @@ fn is_current_process_in_front_of_target_process_window(&self, target_process_id
 fn set_topmost_current_process_window(set_topmost: bool) {
     unsafe {
         static mut CURRENT_PROCESS_ID: u32 = 0;
-        CURRENT_PROCESS_ID = GetCurrentProcessId() as u32;
+        CURRENT_PROCESS_ID = GetCurrentProcessId();
 
         static mut SET_TOPMOST: bool = false;
         SET_TOPMOST = set_topmost;
@@ -106,7 +106,7 @@ fn set_topmost_current_process_window(set_topmost: bool) {
         extern "system" fn enum_window(window: HWND, _: LPARAM) -> BOOL {
             unsafe {
                 let mut proc_id: DWORD = 0 as DWORD;
-                let _ = GetWindowThreadProcessId(window, &mut proc_id as *mut DWORD);
+                let _ = GetWindowThreadProcessId(window, std::ptr::addr_of_mut!(proc_id));
                 if proc_id == CURRENT_PROCESS_ID {
                     SetWindowPos(
                         window,

@@ -40,7 +40,7 @@ impl LogSelection {
 
     fn update_selection(
         &mut self,
-        ui_log_entry: Response,
+        ui_log_entry: &Response,
         clip_rect: &Rect,
         ui: &Ui,
         log_index: usize,
@@ -84,11 +84,9 @@ impl LogSelection {
                         }
                     }
                 }
-            } else {
-                if self.button_just_got_down {
-                    self.index_of_first_selected_log = usize::MAX;
-                    self.index_of_last_selected_log = usize::MAX;
-                }
+            } else if self.button_just_got_down {
+                self.index_of_first_selected_log = usize::MAX;
+                self.index_of_last_selected_log = usize::MAX;
             }
         }
     }
@@ -186,12 +184,12 @@ impl ConsoleTab {
                 }
             });
 
-        self.auto_scroll_to_selection(scroll_area, ui);
+        self.auto_scroll_to_selection(&scroll_area, ui);
     }
 
     fn auto_scroll_to_selection(
         &mut self,
-        scroll_area: scroll_area::ScrollAreaOutput<()>,
+        scroll_area: &scroll_area::ScrollAreaOutput<()>,
         ui: &mut Ui,
     ) {
         if let Some(cursor_pos) = self.log_selection.cursor_pos_when_button_was_pressed {
@@ -255,27 +253,24 @@ impl ConsoleTab {
 
     fn update_copy_logs_to_clipboard(&mut self, ctx: &Context) {
         if ctx.input(|i| i.modifiers.command) && ctx.input(|i| i.key_pressed(Key::C)) {
-            match ClipboardProvider::new() {
-                Ok(ctx_) => {
-                    let mut ctx: ClipboardContext = ctx_;
+            if let Ok(ctx_) = ClipboardProvider::new() {
+                let mut ctx: ClipboardContext = ctx_;
 
-                    let selected_logs: Vec<String> = self
-                        .logs
-                        .iter()
-                        .filter(|x| x.is_selected)
-                        .map(|x| x.data().to_string())
-                        .collect();
+                let selected_logs: Vec<String> = self
+                    .logs
+                    .iter()
+                    .filter(|x| x.is_selected)
+                    .map(|x| x.data().to_string())
+                    .collect();
 
-                    let selected_logs_string = selected_logs.join("\n");
+                let selected_logs_string = selected_logs.join("\n");
 
-                    match ctx.set_contents(selected_logs_string) {
-                        Ok(_) => {}
-                        Err(err) => {
-                            tracing::error!("Failed copying logs to clipboard: {}", err);
-                        }
+                match ctx.set_contents(selected_logs_string) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        tracing::error!("Failed copying logs to clipboard: {}", err);
                     }
                 }
-                Err(_) => {}
             }
         }
     }
@@ -295,7 +290,7 @@ impl ConsoleTab {
             return;
         }
 
-        if !ConsoleTab::does_log_match_text_filter(&filter.text_lowercase, log) {
+        if !Self::does_log_match_text_filter(&filter.text_lowercase, log) {
             return;
         }
 
@@ -323,17 +318,17 @@ impl ConsoleTab {
             log_heights.insert(i, log_height);
         }
 
-        log_selection.update_selection(ui_log_entry, clip_rect, ui, i);
+        log_selection.update_selection(&ui_log_entry, clip_rect, ui, i);
     }
 
     fn does_log_match_text_filter(text_filter_lowercase: &String, log: &BepInExLogEntry) -> bool {
-        if !text_filter_lowercase.is_empty() {
-            if !log.data_lowercase().contains(text_filter_lowercase) {
-                return false;
-            }
+        if !text_filter_lowercase.is_empty()
+            && !log.data_lowercase().contains(text_filter_lowercase)
+        {
+            return false;
         }
 
-        return true;
+        true
     }
 
     fn render_footer(&mut self, data: &AppLaunchConfig, gui_config: &mut Config, ctx: &Context) {
@@ -357,8 +352,8 @@ impl ConsoleTab {
             views::BepInExGUI::render_useful_buttons_footer(
                 ui,
                 ctx,
-                &data.game_folder_full_path(),
-                &data.bepinex_log_output_file_full_path(),
+                data.game_folder_full_path(),
+                data.bepinex_log_output_file_full_path(),
                 data.target_process_id(),
             );
         });
@@ -366,43 +361,41 @@ impl ConsoleTab {
 
     fn render_console_first_time_disclaimer(&mut self, ctx: &Context, gui_config: &mut Config) {
         CentralPanel::default().show(ctx, |_| {
-                Window::new("Console Disclaimer")
-                    .collapsible(false)
-                    .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
-                    .show(ctx, |ui| {
-                        ui.heading(
+            Window::new("Console Disclaimer")
+                .collapsible(false)
+                .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+                .show(ctx, |ui| {
+                    ui.heading(
 r#"The console is meant to be used by mod developers.
 If any of your mods is malfunctioning and that you wish to receive help in the #tech-support channel of the discord:
 Please use the buttons below and use the "Copy Log File" button, and drag and drop it in the #tech-support channel."#);
 
-                        if self.disclaimer.first_time_showing_it {
-                            self.disclaimer.time_when_disclaimer_showed_up =
-                                Some(SystemTime::now());
-                            self.disclaimer.first_time_showing_it = false;
-                        }
+                    if self.disclaimer.first_time_showing_it {
+                        self.disclaimer.time_when_disclaimer_showed_up = Some(SystemTime::now());
+                        self.disclaimer.first_time_showing_it = false;
+                    }
 
-                        if let Ok(_elapsed) =
-                            self.disclaimer.time_when_disclaimer_showed_up.unwrap().elapsed()
+                    if let Ok(elapsed_) = self
+                        .disclaimer
+                        .time_when_disclaimer_showed_up
+                        .unwrap()
+                        .elapsed()
+                    {
+                        let elapsed = elapsed_.as_secs() as i64;
+                        if 9 - elapsed >= 0 {
+                            ui.label(
+                                RichText::new((10 - elapsed).to_string())
+                                    .font(FontId::proportional(20.0)),
+                            );
+                        } else if ui
+                            .button(RichText::new("Ok").font(FontId::proportional(20.0)))
+                            .clicked()
                         {
-                            let elapsed = _elapsed.as_secs() as i64;
-                            if 9 - elapsed >= 0 {
-                                ui.label(
-                                    RichText::new((10 - elapsed).to_string())
-                                        .font(FontId::proportional(20.0)),
-                                );
-                            } else {
-                                if ui
-                                    .button(
-                                        RichText::new("Ok").font(FontId::proportional(20.0)),
-                                    )
-                                    .clicked()
-                                {
-                                    gui_config.first_time_console_disclaimer = false;
-                                }
-                            }
+                            gui_config.first_time_console_disclaimer = false;
                         }
-                    });
-            });
+                    }
+                });
+        });
     }
 
     fn render_kill_gui_and_game_butto(
@@ -415,12 +408,10 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
         let kill_game_btn_size =
             views::utils::egui::compute_text_size(ui, kill_game_btn_text, true, false, None);
 
-        ui.add_space(
-            ui.available_width()
-                - pause_game_btn_size.x
-                - kill_game_btn_size.x
-                - (ui.spacing().item_spacing.x * 4.),
-        );
+        ui.add_space(ui.spacing().item_spacing.x.mul_add(
+            -4.,
+            ui.available_width() - pause_game_btn_size.x - kill_game_btn_size.x,
+        ));
 
         if ui
             .add(Button::new(
@@ -442,7 +433,10 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
             views::utils::egui::compute_text_size(ui, pause_game_btn_text, true, false, None);
 
         ui.add_space(
-            ui.available_width() - pause_game_btn_size.x - (ui.spacing().item_spacing.x * 2.),
+            ui.spacing()
+                .item_spacing
+                .x
+                .mul_add(-2., ui.available_width() - pause_game_btn_size.x),
         );
 
         if ui
@@ -465,7 +459,7 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
     fn render_log_text_filter_input(
         &mut self,
         ui: &mut Ui,
-        mods_combo_box: Response,
+        mods_combo_box: &Response,
         gui_config: &mut Config,
     ) {
         if ui
@@ -499,7 +493,7 @@ Please use the buttons below and use the "Copy Log File" button, and drag and dr
 
         if mods_combo_box.changed() {
             self.filter.text = if self.filter.selected_index_in_mods_combo_box == 0 {
-                "".to_string()
+                String::new()
             } else {
                 self.mods[self.filter.selected_index_in_mods_combo_box]
                     .name()
@@ -539,7 +533,8 @@ fn make_log_render_decision(
     } else {
         return LogRenderDecision::RenderAndCacheHeight;
     }
-    return LogRenderDecision::RenderNormally;
+
+    LogRenderDecision::RenderNormally
 }
 
 fn render_loading_text(ui: &mut Ui) {
@@ -561,14 +556,9 @@ fn make_ui_log_entry(ui: &mut Ui, log: &mut BepInExLogEntry, log_color: Color32)
 
 fn get_color_from_log_level(log: &mut BepInExLogEntry, info_log_color: Color32) -> Color32 {
     match log.level() {
-        LogLevel::None => Color32::RED,
-        LogLevel::Fatal => Color32::RED,
-        LogLevel::Error => Color32::RED,
+        LogLevel::None | LogLevel::Fatal | LogLevel::Error => Color32::RED,
         LogLevel::Warning => Color32::YELLOW,
-        LogLevel::Message => info_log_color,
-        LogLevel::Info => info_log_color,
-        LogLevel::Debug => info_log_color,
-        LogLevel::All => info_log_color,
+        LogLevel::Message | LogLevel::Info | LogLevel::Debug | LogLevel::All => info_log_color,
     }
 }
 
@@ -590,7 +580,7 @@ impl Tab for ConsoleTab {
 
                 ui.label(RichText::new("Log Filtering: ").font(FontId::proportional(20.0)));
                 let mods_combo_box = self.render_log_mod_filter(ui);
-                self.render_log_text_filter_input(ui, mods_combo_box, gui_config);
+                self.render_log_text_filter_input(ui, &mods_combo_box, gui_config);
 
                 render_auto_scroll_to_bottom_checkbox(ui, gui_config);
 
@@ -642,11 +632,8 @@ fn render_auto_scroll_to_bottom_checkbox(ui: &mut Ui, gui_config: &mut Config) {
 
 impl ConsoleTab {
     fn update_mod_receiver(&mut self) {
-        match self.mod_receiver.try_recv() {
-            Ok(mod_) => {
-                self.mods.push(mod_);
-            }
-            Err(_) => {}
+        if let Ok(mod_) = self.mod_receiver.try_recv() {
+            self.mods.push(mod_);
         }
     }
 
@@ -660,10 +647,8 @@ impl ConsoleTab {
                     self.logs.push(log);
                 }
                 Err(err) => match err {
-                    crossbeam_channel::TryRecvError::Empty => {
-                        break;
-                    }
-                    crossbeam_channel::TryRecvError::Disconnected => {
+                    crossbeam_channel::TryRecvError::Disconnected
+                    | crossbeam_channel::TryRecvError::Empty => {
                         break;
                     }
                 },
