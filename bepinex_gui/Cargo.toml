@@ -1,6 +1,6 @@
 [package]
 name = "bepinex_gui"
-version = "3.0.1"
+version = "3.0.2"
 authors = ["Risk of Thunder"]
 license = "MIT"
 description = "Graphical User Interface meant to replace the regular console host that is used by BepInEx"

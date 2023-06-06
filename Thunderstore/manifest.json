@@ -1,6 +1,6 @@
 {
     "name": "BepInEx_GUI",
-    "version_number": "3.0.1",
+    "version_number": "3.0.2",
     "website_url": "https://github.com/risk-of-thunder/BepInEx.GUI",
     "description": "Graphical User Interface meant to replace the regular console host that is used by BepInEx when the config setting is enabled.",
     "dependencies": []
