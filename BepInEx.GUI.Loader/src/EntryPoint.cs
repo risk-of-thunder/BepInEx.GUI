@@ -12,7 +12,7 @@ using Mono.Cecil;
 
 namespace BepInEx.GUI.Loader;
 
-internal static class Patcher
+internal static class EntryPoint
 {
     public static IEnumerable<string> TargetDLLs { get; } = Array.Empty<string>();
 
@@ -69,8 +69,12 @@ internal static class Patcher
 
             if (fileName == $"{GuiFileName}.exe")
             {
-                Log.Info($"Found bepinex_gui executable in {filePath}");
-                return filePath;
+                var versInfo = FileVersionInfo.GetVersionInfo(filePath);
+                if (versInfo.FileMajorPart == 3)
+                {
+                    Log.Info($"Found bepinex_gui v3 executable in {filePath}");
+                    return filePath;
+                }
             }
         }
 
