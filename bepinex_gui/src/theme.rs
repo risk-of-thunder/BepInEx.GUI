@@ -1,4 +1,3 @@
-use eframe;
 use eframe::{egui::*, *};
 
 fn parse_color(color: &str) -> egui::Color32 {
@@ -63,15 +62,15 @@ fn get_aliased_color(json: &serde_json::Value, alias_path: &str) -> egui::Color3
 }
 
 /// Margin on all sides of views.
-pub fn view_padding() -> f32 {
+pub const fn view_padding() -> f32 {
     12.0
 }
 
-pub fn window_rounding() -> f32 {
+pub const fn window_rounding() -> f32 {
     12.0
 }
 
-pub fn small_rounding() -> f32 {
+pub const fn small_rounding() -> f32 {
     4.0
 }
 
@@ -190,7 +189,7 @@ pub fn get_dark_theme() -> egui::Style {
     egui_style
 }
 
-pub(crate) fn configure_fonts(ctx: &Context) {
+pub fn configure_fonts(ctx: &Context) {
     let mut font_def = FontDefinitions::default();
     font_def.font_data.insert(
         "Comfortaa".to_string(),

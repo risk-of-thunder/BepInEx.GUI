@@ -7,7 +7,7 @@ use std::net::TcpStream;
 
 use crate::data::bepinex_log::LogLevel;
 
-pub(crate) fn read_packet_length(tcp_stream: &mut TcpStream) -> Result<usize, std::io::Error> {
+pub fn read_packet_length(tcp_stream: &mut TcpStream) -> Result<usize, std::io::Error> {
     const HEADER_SIZE: usize = size_of::<u32>();
 
     let mut received_bytes = read_packet_internal(tcp_stream, HEADER_SIZE)?;
@@ -18,9 +18,7 @@ pub(crate) fn read_packet_length(tcp_stream: &mut TcpStream) -> Result<usize, st
     Ok(packet_length)
 }
 
-pub(crate) fn read_packet_log_level(
-    tcp_stream: &mut TcpStream,
-) -> Result<LogLevel, std::io::Error> {
+pub fn read_packet_log_level(tcp_stream: &mut TcpStream) -> Result<LogLevel, std::io::Error> {
     unsafe {
         let mut received_bytes = read_packet_internal(tcp_stream, size_of::<i32>())?;
 
@@ -32,7 +30,7 @@ pub(crate) fn read_packet_log_level(
     }
 }
 
-pub(crate) fn read_packet(
+pub fn read_packet(
     tcp_stream: &mut TcpStream,
     size_to_read: usize,
 ) -> Result<Vec<u8>, std::io::Error> {
@@ -47,30 +45,18 @@ fn read_packet_internal(
 ) -> Result<Vec<u8>, std::io::Error> {
     const BUFFER_SIZE: usize = 4096;
 
-    let mut packet_bytes: Vec<u8> = vec![];
-    let mut read_stream_buffer = vec![0u8; size_to_read];
+    let mut packet_bytes = Vec::with_capacity(size_to_read);
     let mut remaining_size_to_read = size_to_read;
 
-    loop {
-        read_stream_buffer.clear();
-        read_stream_buffer.resize(
-            if remaining_size_to_read > BUFFER_SIZE {
-                BUFFER_SIZE
-            } else {
-                remaining_size_to_read
-            },
-            0,
-        );
+    while remaining_size_to_read > 0 {
+        let bytes_read = BUFFER_SIZE.min(remaining_size_to_read);
 
-        match tcp_stream.read(&mut read_stream_buffer) {
-            Ok(bytes_read) => {
-                packet_bytes.extend_from_slice(&read_stream_buffer[..bytes_read]);
+        let mut read_stream_buffer = vec![0u8; bytes_read];
 
+        match tcp_stream.read_exact(&mut read_stream_buffer) {
+            Ok(_) => {
+                packet_bytes.extend_from_slice(&read_stream_buffer);
                 remaining_size_to_read -= bytes_read;
-
-                if remaining_size_to_read <= 0 {
-                    break;
-                }
             }
             Err(err) => return Err(err),
         }
@@ -79,6 +65,6 @@ fn read_packet_internal(
     Ok(packet_bytes)
 }
 
-pub(crate) fn packet_bytes_to_utf8_string(packet_bytes: &Vec<u8>) -> String {
-    unsafe { std::str::from_utf8_unchecked(&packet_bytes).to_string() }
+pub fn packet_bytes_to_utf8_string(packet_bytes: &[u8]) -> String {
+    unsafe { std::str::from_utf8_unchecked(packet_bytes).to_string() }
 }

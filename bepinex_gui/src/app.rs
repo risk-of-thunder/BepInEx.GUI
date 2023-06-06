@@ -19,7 +19,7 @@ use crate::data::bepinex_mod::BepInExMod;
 use crate::views::disclaimer::Disclaimer;
 use crate::{theme, views};
 
-pub(crate) const NAME: &str = "BepInExGUI";
+pub const NAME: &str = "BepInExGUI";
 
 pub struct BepInExGUI {
     pub app_launch_config: AppLaunchConfig,

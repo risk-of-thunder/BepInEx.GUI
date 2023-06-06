@@ -1,8 +1,8 @@
 use crate::config::{launch::AppLaunchConfig, Config};
 
-pub(crate) mod console;
-pub(crate) mod general;
-pub(crate) mod settings;
+pub mod console;
+pub mod general;
+pub mod settings;
 
 pub trait Tab {
     fn name(&self) -> &str;

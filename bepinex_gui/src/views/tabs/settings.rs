@@ -12,7 +12,7 @@ use super::Tab;
 pub struct SettingsTab {}
 
 impl SettingsTab {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {}
     }
 

@@ -18,17 +18,13 @@ pub struct AppLaunchConfig {
 impl AppLaunchConfig {
     const ARG_COUNT: usize = 8;
 
-    pub fn from(args: &Vec<String>) -> Option<AppLaunchConfig> {
-        if args.len() != AppLaunchConfig::ARG_COUNT {
-            tracing::error!("Problem with args {:?} {:?}", args.len(), args);
-
-            None
-        } else {
+    pub fn from(args: &Vec<String>) -> Option<Self> {
+        if args.len() == Self::ARG_COUNT {
             let bepinex_version = &args[1];
             let target_name = &args[2];
             let window_title = app::NAME.to_owned() + " " + bepinex_version + " - " + target_name;
 
-            Some(AppLaunchConfig {
+            Some(Self {
                 target_name: target_name.into(),
                 game_folder_full_path: (&args[3]).into(),
                 bepinex_log_output_file_full_path: (&args[4]).into(),
@@ -37,14 +33,18 @@ impl AppLaunchConfig {
                 log_socket_port_receiver: args[7].parse::<u16>().unwrap(),
                 window_title,
             })
+        } else {
+            tracing::error!("Problem with args {:?} {:?}", args.len(), args);
+
+            None
         }
     }
 
-    pub fn default() -> AppLaunchConfig {
+    pub fn default() -> Self {
         let bepinex_version_string = "5.4.19";
         let target_name = "Risk of Rain 2";
 
-        AppLaunchConfig {
+        Self {
             target_name : target_name.into(),
             game_folder_full_path: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2".into(),
             bepinex_log_output_file_full_path: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Risk of Rain 2\\BepInEx\\LogOutput.log".into(),
@@ -59,23 +59,23 @@ impl AppLaunchConfig {
         self.target_name.as_ref()
     }
 
-    pub fn game_folder_full_path(&self) -> &PathBuf {
+    pub const fn game_folder_full_path(&self) -> &PathBuf {
         &self.game_folder_full_path
     }
 
-    pub fn bepinex_log_output_file_full_path(&self) -> &PathBuf {
+    pub const fn bepinex_log_output_file_full_path(&self) -> &PathBuf {
         &self.bepinex_log_output_file_full_path
     }
 
-    pub fn bepinex_gui_csharp_cfg_full_path(&self) -> &PathBuf {
+    pub const fn bepinex_gui_csharp_cfg_full_path(&self) -> &PathBuf {
         &self.bepinex_gui_csharp_cfg_full_path
     }
 
-    pub fn target_process_id(&self) -> Pid {
+    pub const fn target_process_id(&self) -> Pid {
         self.target_process_id
     }
 
-    pub fn log_socket_port_receiver(&self) -> u16 {
+    pub const fn log_socket_port_receiver(&self) -> u16 {
         self.log_socket_port_receiver
     }
 

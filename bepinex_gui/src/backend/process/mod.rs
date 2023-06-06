@@ -23,20 +23,22 @@ use winapi::{
 };
 
 #[cfg(windows)]
-pub(crate) fn for_each_thread(target_process_id: Pid, callback: impl Fn(HANDLE)) -> bool {
+pub fn for_each_thread(target_process_id: Pid, callback: impl Fn(HANDLE)) -> bool {
     use sysinfo::PidExt;
     use winapi::um::winnt::THREAD_SUSPEND_RESUME;
 
     unsafe {
         let sys = sysinfo::System::new_all();
 
-        if let Some(_) = sys.process(target_process_id) {
+        if sys.process(target_process_id).is_some() {
             let thread_snapshot =
                 winapi::um::tlhelp32::CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 
-            let mut te32: THREADENTRY32 = Default::default();
-            te32.dwSize = size_of::<THREADENTRY32>() as DWORD;
-            let te32_ptr = std::mem::transmute(&te32);
+            let mut te32: THREADENTRY32 = THREADENTRY32 {
+                dwSize: size_of::<THREADENTRY32>() as DWORD,
+                ..Default::default()
+            };
+            let te32_ptr = std::ptr::addr_of_mut!(te32);
 
             if winapi::um::tlhelp32::Thread32First(thread_snapshot, te32_ptr) == 0 {
                 tracing::error!("Thread32First fail");
@@ -51,7 +53,7 @@ pub(crate) fn for_each_thread(target_process_id: Pid, callback: impl Fn(HANDLE))
                         te32.th32ThreadID,
                     );
 
-                    if open_thread_handle == std::ptr::null_mut() {
+                    if open_thread_handle.is_null() {
                         tracing::error!("OpenThread Failed");
                         break;
                     }
@@ -71,40 +73,40 @@ pub(crate) fn for_each_thread(target_process_id: Pid, callback: impl Fn(HANDLE))
             return true;
         }
 
-        return false;
+        false
     }
 }
 
 #[cfg(not(windows))]
-pub(crate) fn for_each_thread() {
+pub fn for_each_thread() {
     // todo
 }
 
 #[cfg(windows)]
-pub(crate) fn resume(target_process_id: Pid) -> bool {
+pub fn resume(target_process_id: Pid) -> bool {
     for_each_thread(target_process_id, |thread_handle| unsafe {
         winapi::um::processthreadsapi::ResumeThread(thread_handle);
     })
 }
 
 #[cfg(not(windows))]
-pub(crate) fn resume(target_process_id: Pid) -> bool {
+pub fn resume(target_process_id: Pid) -> bool {
     // todo
 }
 
 #[cfg(windows)]
-pub(crate) fn suspend(target_process_id: Pid) -> bool {
+pub fn suspend(target_process_id: Pid) -> bool {
     for_each_thread(target_process_id, |thread_handle| unsafe {
         winapi::um::processthreadsapi::SuspendThread(thread_handle);
     })
 }
 
 #[cfg(not(windows))]
-pub(crate) fn suspend(target_process_id: Pid) -> bool {
+pub fn suspend(target_process_id: Pid) -> bool {
     // todo
 }
 
-pub(crate) fn spawn_thread_is_process_dead(
+pub fn spawn_thread_is_process_dead(
     target_process_id: Pid,
     should_check: Arc<AtomicBool>,
     out_true_when_process_is_dead: Arc<AtomicBool>,
@@ -135,13 +137,11 @@ pub fn kill(target_process_id: Pid, callback: impl FnOnce()) {
 }
 
 #[cfg(windows)]
-pub(crate) fn spawn_thread_check_if_process_is_hung(
-    callback: impl Fn() + std::marker::Send + 'static,
-) {
+pub fn spawn_thread_check_if_process_is_hung(callback: impl Fn() + std::marker::Send + 'static) {
     thread::spawn(move || -> io::Result<()> {
         unsafe {
             static mut CURRENT_PROCESS_ID: u32 = 0;
-            CURRENT_PROCESS_ID = GetCurrentProcessId() as u32;
+            CURRENT_PROCESS_ID = GetCurrentProcessId();
 
             static mut GOT_RESULT: bool = false;
 
@@ -155,7 +155,7 @@ pub(crate) fn spawn_thread_check_if_process_is_hung(
                     }
 
                     let mut proc_id: DWORD = 0 as DWORD;
-                    let _ = GetWindowThreadProcessId(window, &mut proc_id as *mut DWORD);
+                    let _ = GetWindowThreadProcessId(window, std::ptr::addr_of_mut!(proc_id));
                     if proc_id == CURRENT_PROCESS_ID {
                         WINDOW_HANDLE = window;
                     }

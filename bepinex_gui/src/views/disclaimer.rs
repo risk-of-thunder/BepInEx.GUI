@@ -37,8 +37,8 @@ For mod developers that like the old conhost console, you can enable it back by 
                     disclaimer.first_time_showing_it = false;
                 }
 
-                if let Ok(_elapsed) = disclaimer.time_when_disclaimer_showed_up.unwrap().elapsed() {
-                    let elapsed = _elapsed.as_secs() as i64;
+                if let Ok(elapsed_) = disclaimer.time_when_disclaimer_showed_up.unwrap().elapsed() {
+                    let elapsed = elapsed_.as_secs() as i64;
                     const NEEDED_TIME_BEFORE_CLOSABLE:i64 = 9;
                     let can_close = elapsed > NEEDED_TIME_BEFORE_CLOSABLE;
                     if can_close {

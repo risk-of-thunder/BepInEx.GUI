@@ -14,7 +14,7 @@ use super::process;
 // the gui window not respond
 // bandaid fix that call winapi for checking if the window hung
 // and reset the process with a cleaned settings file if so
-pub(crate) fn spawn_thread() {
+pub fn spawn_thread() {
     process::spawn_thread_check_if_process_is_hung(|| {
         if let Some(app_ron_file_path) = config::get_app_ron_file_full_path() {
             let current_exe =

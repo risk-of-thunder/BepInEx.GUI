@@ -28,8 +28,8 @@ impl LogReceiver {
         log_socket_port_receiver: u16,
         log_senders: Vec<Sender<BepInExLogEntry>>,
         mod_senders: Vec<Sender<BepInExMod>>,
-    ) -> LogReceiver {
-        LogReceiver {
+    ) -> Self {
+        Self {
             log_socket_port_receiver,
             log_senders,
             mod_senders,
@@ -98,10 +98,10 @@ impl LogReceiver {
         });
     }
 
-    fn make_log_entry_from_packet_data(&self, log_level: LogLevel, string_packet_bytes: &Vec<u8>) {
-        let log_string = packet_protocol::packet_bytes_to_utf8_string(&string_packet_bytes);
+    fn make_log_entry_from_packet_data(&self, log_level: LogLevel, string_packet_bytes: &[u8]) {
+        let log_string = packet_protocol::packet_bytes_to_utf8_string(string_packet_bytes);
 
-        let log = BepInExLogEntry::new(log_level, log_string);
+        let log = BepInExLogEntry::new(log_level, &log_string);
 
         if log.data().contains("Loading [") {
             let split: Vec<&str> = log.data().split('[').collect();

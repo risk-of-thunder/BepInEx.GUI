@@ -1,6 +1,6 @@
 use eframe::egui::*;
 
-pub(crate) fn compute_text_size(
+pub fn compute_text_size(
     ui: &mut Ui,
     text: &str,
     is_heading: bool,
@@ -12,18 +12,17 @@ pub(crate) fn compute_text_size(
     if is_heading {
         rich_text = rich_text.heading();
     } else if let Some(font_size) = font_size_ {
-        rich_text = rich_text.font(FontId::proportional(font_size))
+        rich_text = rich_text.font(FontId::proportional(font_size));
     }
 
     let label = Label::new(rich_text).wrap(is_wrap);
 
     let label_layout_in_ui = label.layout_in_ui(ui);
-    let text_size = label_layout_in_ui.1.size();
 
-    text_size
+    label_layout_in_ui.1.size()
 }
 
-pub(crate) fn scroll_when_trying_to_select_stuff_above_or_under_rect(
+pub fn scroll_when_trying_to_select_stuff_above_or_under_rect(
     ui: &mut Ui,
     rect: Rect,
 ) -> Option<Vec2> {

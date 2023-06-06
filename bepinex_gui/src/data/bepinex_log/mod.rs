@@ -25,36 +25,36 @@ pub enum LogLevel {
 impl Numeric for LogLevel {
     const INTEGRAL: bool = true;
 
-    const MIN: Self = LogLevel::None;
+    const MIN: Self = Self::None;
 
-    const MAX: Self = LogLevel::All;
+    const MAX: Self = Self::All;
 
     // this is needed for egui slider
     fn to_f64(self) -> f64 {
         match self {
-            LogLevel::None => 0.0,
-            LogLevel::Fatal => 1.0,
-            LogLevel::Error => 2.0,
-            LogLevel::Warning => 3.0,
-            LogLevel::Message => 4.0,
-            LogLevel::Info => 5.0,
-            LogLevel::Debug => 6.0,
-            LogLevel::All => 7.0,
+            Self::None => 0.0,
+            Self::Fatal => 1.0,
+            Self::Error => 2.0,
+            Self::Warning => 3.0,
+            Self::Message => 4.0,
+            Self::Info => 5.0,
+            Self::Debug => 6.0,
+            Self::All => 7.0,
         }
     }
 
     // this is needed for egui slider
     fn from_f64(num: f64) -> Self {
         match num {
-            x if x >= 0.0 && x < 1.0 => LogLevel::None,
-            x if x >= 1.0 && x < 2.0 => LogLevel::Fatal,
-            x if x >= 2.0 && x < 3.0 => LogLevel::Error,
-            x if x >= 3.0 && x < 4.0 => LogLevel::Warning,
-            x if x >= 4.0 && x < 5.0 => LogLevel::Message,
-            x if x >= 5.0 && x < 6.0 => LogLevel::Info,
-            x if x >= 6.0 && x < 7.0 => LogLevel::Debug,
-            x if x >= 7.0 && x < 8.0 => LogLevel::All,
-            _ => LogLevel::All,
+            x if (0.0..1.0).contains(&x) => Self::None,
+            x if (1.0..2.0).contains(&x) => Self::Fatal,
+            x if (2.0..3.0).contains(&x) => Self::Error,
+            x if (3.0..4.0).contains(&x) => Self::Warning,
+            x if (4.0..5.0).contains(&x) => Self::Message,
+            x if (5.0..6.0).contains(&x) => Self::Info,
+            x if (6.0..7.0).contains(&x) => Self::Debug,
+            x if (7.0..8.0).contains(&x) => Self::All,
+            _ => Self::All,
         }
     }
 }
@@ -68,16 +68,16 @@ pub struct BepInExLogEntry {
 }
 
 impl BepInExLogEntry {
-    pub fn new(level: LogLevel, data: String) -> Self {
+    pub fn new(level: LogLevel, data: &str) -> Self {
         Self {
             level,
-            data: data.clone(),
+            data: data.to_string(),
             data_lowercase: data.to_lowercase(),
             is_selected: false,
         }
     }
 
-    pub fn level(&self) -> LogLevel {
+    pub const fn level(&self) -> LogLevel {
         self.level
     }
 

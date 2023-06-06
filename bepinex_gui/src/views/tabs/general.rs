@@ -35,8 +35,8 @@ impl GeneralTab {
             app::BepInExGUI::render_useful_buttons_footer(
                 ui,
                 ctx,
-                &data.game_folder_full_path(),
-                &data.bepinex_log_output_file_full_path(),
+                data.game_folder_full_path(),
+                data.bepinex_log_output_file_full_path(),
                 data.target_process_id(),
             );
         });
@@ -70,11 +70,8 @@ impl GeneralTab {
     }
 
     fn update_mod_receiver(&mut self) {
-        match self.mod_receiver.try_recv() {
-            Ok(mod_) => {
-                self.mods.push(mod_);
-            }
-            Err(_) => {}
+        if let Ok(mod_) = self.mod_receiver.try_recv() {
+            self.mods.push(mod_);
         }
     }
 }
@@ -102,7 +99,7 @@ impl Tab for GeneralTab {
         });
 
         let loaded_mod_count = self.mods.len();
-        let loaded_mods_text = format!("Loaded Mods: {}", loaded_mod_count);
+        let loaded_mods_text = format!("Loaded Mods: {loaded_mod_count}");
         ui.label(RichText::new(loaded_mods_text).font(FontId::proportional(20.0)));
     }
 
