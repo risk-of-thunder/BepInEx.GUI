@@ -89,7 +89,7 @@ internal class SendLogToClientSocket : ILogListener
 
     public void Dispose()
     {
-
+        _isDisposed = true;
     }
 
     internal void StoreLog(LogEventArgs eventArgs)
