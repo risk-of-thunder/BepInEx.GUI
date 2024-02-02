@@ -82,12 +82,14 @@ internal class SendLogToClientSocket : ILogListener
                     _ = _logQueue.Dequeue();
                 }
             }
+
+            Thread.Sleep(17);
         }
     }
 
     public void Dispose()
     {
-
+        _isDisposed = true;
     }
 
     internal void StoreLog(LogEventArgs eventArgs)
