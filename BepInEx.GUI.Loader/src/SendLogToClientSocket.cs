@@ -82,6 +82,8 @@ internal class SendLogToClientSocket : ILogListener
                     _ = _logQueue.Dequeue();
                 }
             }
+
+            Thread.Sleep(17);
         }
     }
 
